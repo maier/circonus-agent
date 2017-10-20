@@ -16,10 +16,9 @@ import (
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-
-	cgm "github.com/circonus-labs/circonus-gometrics"
 )
 
 // CPU metrics from the Linux ProcFS

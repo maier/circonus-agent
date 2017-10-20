@@ -7,7 +7,6 @@ package collector
 
 import (
 	"errors"
-	"sync"
 
 	cgm "github.com/circonus-labs/circonus-gometrics"
 )
@@ -16,18 +15,17 @@ import (
 type Collector interface {
 	Collect() error
 	Flush() cgm.Metrics
-	Inventory() InventoryStats
 	ID() string
+	Inventory() InventoryStats
 }
 
 // InventoryStats defines the stats a collector exposes for the /inventory endpoint
 type InventoryStats struct {
-	sync.Mutex
 	ID              string `json:"name"`
-	LastRunStart    string `json:"last_run_start"`
-	LastRunEnd      string `json:"last_run_end"`
-	LastRunDuration string `json:"last_run_duration"`
 	LastError       string `json:"last_error"`
+	LastRunDuration string `json:"last_run_duration"`
+	LastRunEnd      string `json:"last_run_end"`
+	LastRunStart    string `json:"last_run_start"`
 }
 
 var (

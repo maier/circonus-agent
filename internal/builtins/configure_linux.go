@@ -21,10 +21,12 @@ func (b *Builtins) configure() error {
 		if _, err := os.Stat(cfg); os.IsNotExist(err) {
 			cfg = ""
 		}
+
 		cpu, err := procfs.NewCPUMetrics(cfg)
 		if err != nil {
 			return errors.Wrap(err, "procfs.cpu")
 		}
+
 		b.collectors[cpu.ID()] = cpu
 	}
 

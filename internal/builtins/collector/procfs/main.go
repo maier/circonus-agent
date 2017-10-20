@@ -22,21 +22,29 @@ func New(cfgFile string) (collector.Collector, error) {
 
 // Collect returns collector metrics
 func (p *pfscommon) Collect() error {
+	p.Lock()
+	defer p.Unlock()
 	return collector.ErrNotImplemented
 }
 
 // Flush returns last metrics collected
 func (p *pfscommon) Flush() cgm.Metrics {
+	p.Lock()
+	defer p.Unlock()
 	return cgm.Metrics{}
 }
 
 // ID returns the id of the instance
 func (p *pfscommon) ID() string {
+	p.Lock()
+	defer p.Unlock()
 	return p.id
 }
 
 // Inventory returns collector stats for /inventory endpoint
 func (p *pfscommon) Inventory() collector.InventoryStats {
+	p.Lock()
+	defer p.Unlock()
 	return collector.InventoryStats{
 		ID:              p.id,
 		LastRunStart:    p.lastStart.Format(time.RFC3339Nano),
