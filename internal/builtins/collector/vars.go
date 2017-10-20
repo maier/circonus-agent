@@ -16,8 +16,8 @@ import (
 type Collector interface {
 	Collect() error
 	Flush() cgm.Metrics
-	Inventory() (InventoryStats, error)
-	ID() (string, error)
+	Inventory() InventoryStats
+	ID() string
 }
 
 // InventoryStats defines the stats a collector exposes for the /inventory endpoint

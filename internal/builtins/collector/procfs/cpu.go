@@ -11,5 +11,8 @@ import "github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 
 // NewCPUMetrics creates new procfs cpu collector
 func NewCPUMetrics(cfgFile string) (collector.Collector, error) {
-	return &pfscommon{id: "not_implemented"}, collector.ErrNotImplemented
+	return &pfscommon{
+		id:        "not_implemented",
+		lastError: collector.ErrNotImplemented,
+	}, collector.ErrNotImplemented
 }

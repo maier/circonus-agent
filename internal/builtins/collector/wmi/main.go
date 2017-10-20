@@ -28,17 +28,17 @@ func (p *wmicommon) Flush() cgm.Metrics {
 }
 
 // ID returns the id of the instance
-func (p *wmicommon) ID() (string, error) {
-	return p.id, nil
+func (p *wmicommon) ID() string {
+	return p.id
 }
 
 // Inventory returns collector stats for /inventory endpoint
-func (p *wmicommon) Inventory() (collector.InventoryStats, error) {
+func (p *wmicommon) Inventory() collector.InventoryStats {
 	return collector.InventoryStats{
 		ID:              p.id,
 		LastRunStart:    p.lastStart.Format(time.RFC3339Nano),
 		LastRunEnd:      p.lastEnd.Format(time.RFC3339Nano),
 		LastRunDuration: p.lastRunDuration.String(),
 		LastError:       p.lastError.Error(),
-	}, nil
+	}
 }

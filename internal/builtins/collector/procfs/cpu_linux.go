@@ -46,7 +46,7 @@ func NewCPUMetrics(cfgFile string) (collector.Collector, error) {
 
 	cpu.id = id
 	cpu.file = "/proc/stat"
-	cpu.logger = log.With().Str("pkg", "procfs.cpu").Logger()
+	cpu.logger = log.With().Str("pkg", "builtins.procfs.cpu").Logger()
 	cpu.numCPU = float64(runtime.NumCPU())
 	cpu.metricStatus = map[string]bool{}
 	cpu.defaultStatus = "active"
@@ -109,13 +109,13 @@ func (c *CPU) Collect() error {
 		if time.Since(c.lastEnd) < c.runTTL {
 			c.logger.Warn().Msg(collector.ErrTTLNotExpired.Error())
 			c.Unlock()
-			return metrics, collector.ErrTTLNotExpired
+			return collector.ErrTTLNotExpired
 		}
 	}
 	if c.running {
 		c.logger.Warn().Msg(collector.ErrAlreadyRunning.Error())
 		c.Unlock()
-		return metrics, collector.ErrAlreadyRunning
+		return collector.ErrAlreadyRunning
 	}
 
 	resetStatus := func(err error) {
@@ -138,7 +138,7 @@ func (c *CPU) Collect() error {
 	f, err := os.Open(c.file)
 	if err != nil {
 		resetStatus(err)
-		return metrics, errors.Wrap(err, "procfs.cpu")
+		return errors.Wrap(err, "procfs.cpu")
 	}
 	defer f.Close()
 
@@ -162,7 +162,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				resetStatus(err)
-				return metrics, errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
 			metrics[metricName] = cgm.Metric{
 				Type:  "L",
@@ -181,7 +181,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				resetStatus(err)
-				return metrics, errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
 			metrics[metricName] = cgm.Metric{
 				Type:  "L",
@@ -200,7 +200,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				resetStatus(err)
-				return metrics, errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
 			metrics[metricName] = cgm.Metric{
 				Type:  "L",
@@ -219,7 +219,7 @@ func (c *CPU) Collect() error {
 			v, err := strconv.ParseUint(fields[1], 10, 64)
 			if err != nil {
 				resetStatus(err)
-				return metrics, errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
 			metrics[metricName] = cgm.Metric{
 				Type:  "L",
@@ -233,7 +233,7 @@ func (c *CPU) Collect() error {
 			cpuMetrics, err := c.parseCPU(fields)
 			if err != nil {
 				resetStatus(err)
-				return metrics, errors.Wrapf(err, "parsing %s", fields[0])
+				return errors.Wrapf(err, "parsing %s", fields[0])
 			}
 			for mn, mv := range *cpuMetrics {
 				found, active := c.metricStatus[mn]
