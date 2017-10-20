@@ -15,15 +15,18 @@ import (
 )
 
 func (b *Builtins) configure() error {
-	cfg := path.Join(defaults.EtcPath, "cpu.json")
-	if _, err := os.Stat(cfg); os.IsNotExist(err) {
-		cfg = ""
+	// CPU metrics
+	{
+		cfg := path.Join(defaults.EtcPath, "cpu.json")
+		if _, err := os.Stat(cfg); os.IsNotExist(err) {
+			cfg = ""
+		}
+		cpu, err := procfs.NewCPUMetrics(cfg)
+		if err != nil {
+			return errors.Wrap(err, "procfs.cpu")
+		}
+		b.collectors[cpu.ID()] = cpu
 	}
-	cpu, err := procfs.NewCPUMetrics(cfg)
-	if err != nil {
-		return errors.Wrap(err, "procfs.cpu")
-	}
-	b.collectors[cpu.ID()] = cpu
 
 	return nil
 }
