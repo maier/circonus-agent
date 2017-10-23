@@ -9,7 +9,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/procfs"
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/linux/procfs"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	"github.com/pkg/errors"
 )

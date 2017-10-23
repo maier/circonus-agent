@@ -38,8 +38,8 @@ type config struct {
 	DefaultMetricStatus string          `json:"metric_default_status"`
 }
 
-// NewCPUMetrics creates new procfs cpu collector
-func NewCPUMetrics(cfgFile string) (collector.Collector, error) {
+// NewCPUCollector creates new procfs cpu collector
+func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 	id := "cpu"
 	cpu := CPU{}
 
@@ -133,6 +133,7 @@ func (c *CPU) Collect() error {
 
 	c.running = true
 	c.lastStart = time.Now()
+	c.Unlock()
 
 	f, err := os.Open(c.file)
 	if err != nil {

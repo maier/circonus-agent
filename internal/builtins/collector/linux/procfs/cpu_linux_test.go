@@ -11,12 +11,12 @@ import (
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 )
 
-func TestNewCPUMetrics(t *testing.T) {
-	t.Log("Testing NewCPUMetrics")
+func TestNewCPUCollector(t *testing.T) {
+	t.Log("Testing NewCPUCollector")
 
 	t.Log("no config")
 	{
-		p, err := NewCPUMetrics("")
+		p, err := NewCPUCollector("")
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -31,7 +31,7 @@ func TestNewCPUMetrics(t *testing.T) {
 	t.Log("config")
 	{
 		// does not matter if the file exists or not - this is a stub it should just react benignly
-		p, err := NewCPUMetrics("testdata/missing.json")
+		p, err := NewCPUCollector("testdata/missing.json")
 		if err == nil {
 			t.Fatal("expected error")
 		}
