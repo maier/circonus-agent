@@ -16,6 +16,7 @@ import (
 // wmicommon defines WMI metrics common elements
 type wmicommon struct {
 	id                  string
+	query               string
 	lastEnd             time.Time
 	lastError           error
 	lastMetrics         cgm.Metrics

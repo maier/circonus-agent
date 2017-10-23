@@ -14,6 +14,9 @@ import (
 
 // New creates new WMI collector
 func New(cfgFile string) (collector.Collector, error) {
+	if err := configure(); err != nil {
+		return nil, err
+	}
 	return &wmicommon{
 		id:        "not_implemented",
 		lastError: collector.ErrNotImplemented,
