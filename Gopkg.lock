@@ -3,6 +3,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/StackExchange/wmi"
+  packages = ["."]
+  revision = "ea383cf3ba6ec950874b8486cd72356d007c768f"
+
+[[projects]]
+  branch = "master"
   name = "github.com/alecthomas/units"
   packages = ["."]
   revision = "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
@@ -24,6 +30,12 @@
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
   version = "v1.4.2"
+
+[[projects]]
+  name = "github.com/go-ole/go-ole"
+  packages = [".","oleutil"]
+  revision = "0e87ea779d9deb219633b828a023b32e1244dd57"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -184,6 +196,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c4243dfc4ad956b62fcf5f0f1fef4c715b26741df8eaec26d3699f3b79ad5366"
+  inputs-digest = "50061f46a08658f20d8fbdeb5a1064d93d28033c462558b7331ed27fe17aa703"
   solver-name = "gps-cdcl"
   solver-version = 1
