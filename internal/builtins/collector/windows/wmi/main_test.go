@@ -104,7 +104,7 @@ func TestFlush(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		if err != collector.ErrNotImplemented {
-			t.Fatal("expected a collector.ErrNotImplemented error, got (%s)", err)
+			t.Fatalf("expected a collector.ErrNotImplemented error, got (%s)", err)
 		}
 		if _, ok := p.(collector.Collector); !ok {
 			t.Fatal("expected a collector.Collector interface")
@@ -127,7 +127,7 @@ func TestFlush(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		if err != collector.ErrNotImplemented {
-			t.Fatal("expected a collector.ErrNotImplemented error, got (%s)", err)
+			t.Fatalf("expected a collector.ErrNotImplemented error, got (%s)", err)
 		}
 		if _, ok := p.(collector.Collector); !ok {
 			t.Fatal("expected a collector.Collector interface")
@@ -153,7 +153,7 @@ func TestID(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		if err != collector.ErrNotImplemented {
-			t.Fatal("expected a collector.ErrNotImplemented error, got (%s)", err)
+			t.Fatalf("expected a collector.ErrNotImplemented error, got (%s)", err)
 		}
 		if _, ok := p.(collector.Collector); !ok {
 			t.Fatal("expected a collector.Collector interface")
@@ -174,7 +174,7 @@ func TestID(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		if err != collector.ErrNotImplemented {
-			t.Fatal("expected a collector.ErrNotImplemented error, got (%s)", err)
+			t.Fatalf("expected a collector.ErrNotImplemented error, got (%s)", err)
 		}
 		if _, ok := p.(collector.Collector); !ok {
 			t.Fatal("expected a collector.Collector interface")
@@ -198,7 +198,7 @@ func TestInventory(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		if err != collector.ErrNotImplemented {
-			t.Fatal("expected a collector.ErrNotImplemented error, got (%s)", err)
+			t.Fatalf("expected a collector.ErrNotImplemented error, got (%s)", err)
 		}
 		if _, ok := p.(collector.Collector); !ok {
 			t.Fatal("expected a collector.Collector interface")
@@ -219,7 +219,7 @@ func TestInventory(t *testing.T) {
 			t.Fatal("expected error")
 		}
 		if err != collector.ErrNotImplemented {
-			t.Fatal("expected a collector.ErrNotImplemented error, got (%s)", err)
+			t.Fatalf("expected a collector.ErrNotImplemented error, got (%s)", err)
 		}
 		if _, ok := p.(collector.Collector); !ok {
 			t.Fatal("expected a collector.Collector interface")
