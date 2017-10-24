@@ -22,7 +22,7 @@ func (b *Builtins) configure() error {
 			cfg = ""
 		}
 
-		cpu, err := procfs.NewCPUMetrics(cfg)
+		cpu, err := procfs.NewCPUCollector(cfg)
 		if err != nil {
 			return errors.Wrap(err, "procfs.cpu")
 		}
