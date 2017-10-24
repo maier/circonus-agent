@@ -13,7 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
@@ -64,7 +66,7 @@ func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 	cpu.logger = log.With().Str("pkg", "builtins.wmi.cpu").Logger()
 	cpu.numCPU = float64(runtime.NumCPU())
 	cpu.metricStatus = map[string]bool{}
-	cpu.defaultStatus = "active"
+	cpu.metricStatusDefault = "active"
 	cpu.reportAllCPUs = true
 
 	if cfgFile != "" {
@@ -87,12 +89,8 @@ func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 		}
 
 		if ok, _ := regexp.MatchString(`^(active|disabled)$`, cfg.DefaultMetricStatus); ok {
-			cpu.metricDefaultStatus = cfg.DefaultMetricStatus
+			cpu.metricStatusDefault = cfg.DefaultMetricStatus
 		}
-	}
-
-	if _, err := os.Stat(cpu.file); os.IsNotExist(err) {
-		return nil, errors.Wrap(err, "wmi")
 	}
 
 	return &cpu, nil
@@ -132,7 +130,7 @@ func (c *CPU) Collect() error {
 		if err != nil {
 			// on error, ensure metrics are reset
 			// do not keep returning a stale set of metrics
-			c.lastMetrics = &cgm.Metrics{}
+			c.lastMetrics = cgm.Metrics{}
 		}
 		c.running = false
 		c.Unlock()
