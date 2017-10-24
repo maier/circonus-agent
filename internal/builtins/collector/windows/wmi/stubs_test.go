@@ -14,7 +14,7 @@ import (
 )
 
 func TestNewCPUCollector(t *testing.T) {
-	t.Log("Testing NewCPUCollector")
+	t.Log("Testing Stub NewCPUCollector")
 
 	t.Log("no config")
 	{
