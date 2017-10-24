@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 //
 
+// +build !windows
+
 package wmi
 
 import "github.com/circonus-labs/circonus-agent/internal/builtins/collector"
