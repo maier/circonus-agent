@@ -29,10 +29,10 @@ type CPU struct {
 
 // config defines what elements can be overriden in a config file
 type config struct {
-	File                string          `json:"proc_file"`
 	AllCPU              bool            `json:"report_all_cpus"`
 	Metrics             map[string]bool `json:"metrics"`
 	DefaultMetricStatus string          `json:"metric_default_status"`
+	RunTTL              string          `json:"run_ttl"`
 }
 
 // Win32_PerfFormattedData_PerfOS_Processor defines the metrics to collect
@@ -68,6 +68,7 @@ func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 	cpu.metricStatus = map[string]bool{}
 	cpu.metricStatusDefault = "active"
 	cpu.reportAllCPUs = true
+	cpu.lastMetrics = cgm.Metrics{}
 
 	if cfgFile != "" {
 		f, err := os.Open(cfgFile)
@@ -90,6 +91,14 @@ func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 
 		if ok, _ := regexp.MatchString(`^(active|disabled)$`, cfg.DefaultMetricStatus); ok {
 			cpu.metricStatusDefault = cfg.DefaultMetricStatus
+		}
+
+		if cfg.RunTTL != "" {
+			dur, err := time.ParseDuration(cfg.RunTTL)
+			if err != nil {
+				return nil, errors.Wrapf(err, "parsing config file %s", cfgFile)
+			}
+			cpu.runTTL = dur
 		}
 	}
 
