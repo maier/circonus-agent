@@ -119,7 +119,3 @@ func (b *Builtins) Flush(id string) *cgm.Metrics {
 
 	return &metrics
 }
-
-func (b *Builtins) configure() error {
-	return nil // stub, goos specific
-}
