@@ -10,7 +10,6 @@ package wmi
 import (
 	"encoding/json"
 	"os"
-	"path"
 	"regexp"
 	"runtime"
 	"strings"
@@ -18,7 +17,6 @@ import (
 
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -60,7 +58,7 @@ type Win32_PerfFormattedData_PerfOS_Processor struct {
 }
 
 // NewCPUCollector creates new wmi cpu collector
-func NewCPUCollector() (collector.Collector, error) {
+func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 	id := "cpu"
 	cpu := CPU{}
 
@@ -75,9 +73,10 @@ func NewCPUCollector() (collector.Collector, error) {
 	cpu.reportAllCPUs = true
 	cpu.lastMetrics = cgm.Metrics{}
 
-	cfgFile := path.Join(defaults.EtcPath, "cpu.json")
-	if _, err := os.Stat(cfg); os.IsNotExist(err) {
-		cfg = ""
+	if cfgFile != "" {
+		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+			cfgFile = ""
+		}
 	}
 
 	if cfgFile != "" {
