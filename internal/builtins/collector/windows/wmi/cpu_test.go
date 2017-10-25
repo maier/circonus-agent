@@ -61,14 +61,33 @@ func TestNewCPUCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (report all cpus setting)")
+	t.Log("config (report all cpus setting true)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_setting"))
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_true_setting"))
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		if !c.(*CPU).reportAllCPUs {
+			t.Fatal("expected true")
+		}
+	}
+
+	t.Log("config (report all cpus setting false)")
+	{
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_false_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
 		if c.(*CPU).reportAllCPUs {
 			t.Fatal("expected false")
+		}
+	}
+
+	t.Log("config (report all cpus setting invalid)")
+	{
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_report_all_cpus_invalid_setting"))
+		if err == nil {
+			t.Fatal("expected error")
 		}
 	}
 
@@ -108,24 +127,35 @@ func TestNewCPUCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (metrics disabled setting)")
+	t.Log("config (metrics default status enabled)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_metrics_disabled_setting"))
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_metrics_default_status_enabled_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if len(c.(*CPU).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*CPU).metricStatus)
-		}
-		enabled, ok := c.(*CPU).metricStatus["foo"]
-		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*CPU).metricStatus)
-		}
-		if enabled {
-			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*CPU).metricStatus)
+		if !c.(*CPU).metricDefaultStatus {
+			t.Fatal("expected true")
 		}
 	}
 
+	t.Log("config (metrics default status disabled)")
+	{
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_metrics_default_status_disabled_setting"))
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		if c.(*CPU).metricDefaultStatus {
+			t.Fatal("expected false")
+		}
+	}
+
+	t.Log("config (metrics default status invalid)")
+	{
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"))
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	}
 }
 
 func TestCPUID(t *testing.T) {
