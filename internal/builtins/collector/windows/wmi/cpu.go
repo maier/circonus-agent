@@ -8,15 +8,15 @@
 package wmi
 
 import (
-	"encoding/json"
-	"os"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -29,13 +29,14 @@ type CPU struct {
 	reportAllCPUs bool // may be overriden in config file
 }
 
-// config defines what elements can be overriden in a config file
-type config struct {
-	ID                  string          `json:"id"`
-	AllCPU              bool            `json:"report_all_cpus"`
-	Metrics             map[string]bool `json:"metrics"`
-	DefaultMetricStatus string          `json:"metric_default_status"`
-	RunTTL              string          `json:"run_ttl"`
+// options defines what elements can be overriden in a config file
+type options struct {
+	ID                   string   `json:"id" toml:"id" yaml:"id"`
+	AllCPU               string   `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
+	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
+	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // Win32_PerfFormattedData_PerfOS_Processor defines the metrics to collect
@@ -58,7 +59,7 @@ type Win32_PerfFormattedData_PerfOS_Processor struct {
 }
 
 // NewCPUCollector creates new wmi cpu collector
-func NewCPUCollector(cfgFile string) (collector.Collector, error) {
+func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	id := "cpu"
 	cpu := CPU{}
 
@@ -69,50 +70,59 @@ func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 	cpu.logger = log.With().Str("pkg", "builtins.wmi.cpu").Logger()
 	cpu.numCPU = float64(runtime.NumCPU())
 	cpu.metricStatus = map[string]bool{}
-	cpu.metricStatusDefault = "active"
+	cpu.metricDefaultActive = true
 	cpu.reportAllCPUs = true
 	cpu.lastMetrics = cgm.Metrics{}
 
-	if cfgFile != "" {
-		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
-			cfgFile = ""
+	if cfgBaseName == "" {
+		return &cpu, nil
+	}
+
+	var cfg options
+	err := config.LoadConfigFile(cfgBaseName, &cfg)
+	if err != nil {
+		cpu.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+		if strings.Contains(err.Error(), "no config found matching") {
+			return &cpu, nil
+		}
+		return nil, errors.Wrap(err, "wmi.cpu config")
+	}
+
+	cpu.logger.Debug().Interface("config", cfg).Msg("loaded config")
+
+	if cfg.ID != "" {
+		cpu.id = cfg.ID
+	}
+
+	if cfg.AllCPU != "" {
+		rpt, err := strconv.ParseBool(cfg.AllCPU)
+		if err != nil {
+			return nil, errors.Wrap(err, "wmi.cpu parsing report_all_cpus")
+		}
+		cpu.reportAllCPUs = rpt
+	}
+
+	if len(cfg.MetricsEnabled) > 0 {
+		for _, name := range cfg.MetricsEnabled {
+			cpu.metricStatus[name] = true
+		}
+	}
+	if len(cfg.MetricsDisabled) > 0 {
+		for _, name := range cfg.MetricsDisabled {
+			cpu.metricStatus[name] = false
 		}
 	}
 
-	if cfgFile != "" {
-		f, err := os.Open(cfgFile)
+	if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
+		cpu.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+	}
+
+	if cfg.RunTTL != "" {
+		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "config file")
+			return nil, errors.Wrap(err, "wmi.cpu parsing run_ttl")
 		}
-		defer f.Close()
-
-		var cfg config
-		dec := json.NewDecoder(f)
-		if err := dec.Decode(&cfg); err != nil {
-			return nil, errors.Wrapf(err, "parsing config file %s", cfgFile)
-		}
-
-		if cfg.ID != "" {
-			cpu.id = cfg.ID
-		}
-
-		cpu.reportAllCPUs = cfg.AllCPU
-
-		if len(cfg.Metrics) > 0 {
-			cpu.metricStatus = cfg.Metrics
-		}
-
-		if ok, _ := regexp.MatchString(`^(active|disabled)$`, cfg.DefaultMetricStatus); ok {
-			cpu.metricStatusDefault = cfg.DefaultMetricStatus
-		}
-
-		if cfg.RunTTL != "" {
-			dur, err := time.ParseDuration(cfg.RunTTL)
-			if err != nil {
-				return nil, errors.Wrapf(err, "parsing config file %s", cfgFile)
-			}
-			cpu.runTTL = dur
-		}
+		cpu.runTTL = dur
 	}
 
 	return &cpu, nil
@@ -148,8 +158,8 @@ func (c *CPU) Collect() error {
 		c.Lock()
 		c.lastEnd = time.Now()
 		c.lastRunDuration = time.Since(c.lastStart)
-		c.lastError = err
 		if err != nil {
+			c.lastError = err.Error()
 			// on error, ensure metrics are reset
 			// do not keep returning a stale set of metrics
 			c.lastMetrics = cgm.Metrics{}
@@ -169,8 +179,8 @@ func (c *CPU) Collect() error {
 	}
 
 	addMetric := func(mname, mtype string, mval interface{}) {
-		found, active := c.metricStatus[mname]
-		if (found && active) || (!found && c.metricStatusDefault == "active") {
+		active, found := c.metricStatus[mname]
+		if (found && active) || (!found && c.metricDefaultActive) {
 			metrics[mname] = cgm.Metric{Type: mtype, Value: mval}
 		}
 	}

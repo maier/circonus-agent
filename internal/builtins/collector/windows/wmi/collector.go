@@ -14,6 +14,13 @@ import (
 	cgm "github.com/circonus-labs/circonus-gometrics"
 )
 
+// Define stubs to satisfy the collector.Collector interface.
+//
+// The individual wmi collector implementations must override Collect and Flush.
+//
+// ID and Inventory are generic and do not need to be overriden unless the
+// collector implementation requires it.
+
 // Collect metrics
 func (c *wmicommon) Collect() error {
 	c.Lock()
@@ -44,6 +51,6 @@ func (c *wmicommon) Inventory() collector.InventoryStats {
 		LastRunStart:    c.lastStart.Format(time.RFC3339Nano),
 		LastRunEnd:      c.lastEnd.Format(time.RFC3339Nano),
 		LastRunDuration: c.lastRunDuration.String(),
-		LastError:       c.lastError.Error(),
+		LastError:       c.lastError,
 	}
 }

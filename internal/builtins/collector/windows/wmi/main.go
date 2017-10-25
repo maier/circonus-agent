@@ -37,7 +37,7 @@ func New() ([]collector.Collector, error) {
 
 	collectors := make([]collector.Collector, 10)
 
-	c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu.json"))
+	c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu"))
 	if err != nil {
 		return []collector.Collector{}, errors.Wrap(err, "initializing wmi.cpu")
 	}

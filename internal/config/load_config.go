@@ -60,7 +60,7 @@ func LoadConfigFile(base string, target interface{}) error {
 	}
 
 	if !loaded {
-		return errors.Errorf("unable to load configuration file (%s%s)", base, strings.Join(extensions, "|"))
+		return errors.Errorf("no config found matching (%s%s)", base, strings.Join(extensions, "|"))
 	}
 
 	return nil

@@ -18,13 +18,13 @@ type wmicommon struct {
 	id                  string
 	query               string
 	lastEnd             time.Time
-	lastError           error
+	lastError           string
 	lastMetrics         cgm.Metrics
 	lastRunDuration     time.Duration
 	lastStart           time.Time
 	logger              zerolog.Logger
 	metricStatus        map[string]bool // list of metrics and whether they should be collected or not, may be overriden in config file
-	metricStatusDefault string          // default collection status for metrics NOT explicitly in metricStatus, may be overriden in config file
+	metricDefaultActive bool            // default status for metrics NOT explicitly in metricStatus, may be overriden in config file
 	running             bool
 	runTTL              time.Duration // may be overriden in config file (default is for every request)
 	sync.Mutex
