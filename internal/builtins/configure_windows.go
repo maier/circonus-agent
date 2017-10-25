@@ -7,6 +7,14 @@
 
 package builtins
 
+import (
+	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/windows/wmi"
+)
+
 func (b *Builtins) configure() error {
+	collectors, err := wmi.New()
+	for _, c := range collectors {
+		b.collectors[c.ID()] = c
+	}
 	return nil
 }

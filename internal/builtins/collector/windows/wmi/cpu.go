@@ -3,11 +3,14 @@
 // license that can be found in the LICENSE file.
 //
 
+// +build windows
+
 package wmi
 
 import (
 	"encoding/json"
 	"os"
+	"path"
 	"regexp"
 	"runtime"
 	"strings"
@@ -15,6 +18,7 @@ import (
 
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
 	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -29,6 +33,7 @@ type CPU struct {
 
 // config defines what elements can be overriden in a config file
 type config struct {
+	ID                  string          `json:"id"`
 	AllCPU              bool            `json:"report_all_cpus"`
 	Metrics             map[string]bool `json:"metrics"`
 	DefaultMetricStatus string          `json:"metric_default_status"`
@@ -55,7 +60,7 @@ type Win32_PerfFormattedData_PerfOS_Processor struct {
 }
 
 // NewCPUCollector creates new wmi cpu collector
-func NewCPUCollector(cfgFile string) (collector.Collector, error) {
+func NewCPUCollector() (collector.Collector, error) {
 	id := "cpu"
 	cpu := CPU{}
 
@@ -70,6 +75,11 @@ func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 	cpu.reportAllCPUs = true
 	cpu.lastMetrics = cgm.Metrics{}
 
+	cfgFile := path.Join(defaults.EtcPath, "cpu.json")
+	if _, err := os.Stat(cfg); os.IsNotExist(err) {
+		cfg = ""
+	}
+
 	if cfgFile != "" {
 		f, err := os.Open(cfgFile)
 		if err != nil {
@@ -81,6 +91,10 @@ func NewCPUCollector(cfgFile string) (collector.Collector, error) {
 		dec := json.NewDecoder(f)
 		if err := dec.Decode(&cfg); err != nil {
 			return nil, errors.Wrapf(err, "parsing config file %s", cfgFile)
+		}
+
+		if cfg.ID != "" {
+			cpu.id = cfg.ID
 		}
 
 		cpu.reportAllCPUs = cfg.AllCPU

@@ -3,24 +3,42 @@
 // license that can be found in the LICENSE file.
 //
 
+// +build windows
+
 package wmi
 
 import (
 	"time"
 
+	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	cgm "github.com/circonus-labs/circonus-gometrics"
+	"github.com/pkg/errors"
 )
 
-// New creates new WMI collector
-func New(cfgFile string) (collector.Collector, error) {
-	if err := configure(); err != nil {
-		return nil, err
+func init() {
+	// This initialization prevents a memory leak on WMF 5+. See
+	// https://github.com/martinlindhe/wmi_exporter/issues/77 and linked issues
+	// for details.
+	s, err := wmi.InitializeSWbemServices(wmi.DefaultClient)
+	if err != nil {
+		return err
 	}
-	return &wmicommon{
-		id:        "not_implemented",
-		lastError: collector.ErrNotImplemented,
-	}, collector.ErrNotImplemented
+	wmi.DefaultClient.SWbemServicesClient = s
+}
+
+// New creates new WMI collector
+func New(cfgFile string) ([]collector.Collector, error) {
+
+	collectors := make([]collector.Collector, 10)
+
+	c, err := NewCPUCollector()
+	if err != nil {
+		return errors.Wrap(err, "initializing wmi.cpu")
+	}
+	collectors = append(collectors, c)
+
+	return collectors, nil
 }
 
 // Collect returns collector metrics
