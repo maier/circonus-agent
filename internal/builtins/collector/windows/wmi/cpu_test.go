@@ -10,10 +10,15 @@ package wmi
 import (
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/rs/zerolog"
 )
 
 func TestNewCPUCollector(t *testing.T) {
 	t.Log("Testing NewCPUCollector")
+
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
 	t.Log("no config")
 	{
@@ -133,7 +138,7 @@ func TestNewCPUCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if !c.(*CPU).metricDefaultStatus {
+		if !c.(*CPU).metricDefaultActive {
 			t.Fatal("expected true")
 		}
 	}
@@ -144,7 +149,7 @@ func TestNewCPUCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if c.(*CPU).metricDefaultStatus {
+		if c.(*CPU).metricDefaultActive {
 			t.Fatal("expected false")
 		}
 	}
@@ -156,36 +161,23 @@ func TestNewCPUCollector(t *testing.T) {
 			t.Fatal("expected error")
 		}
 	}
-}
 
-func TestCPUID(t *testing.T) {
-	t.Log("Testing ID")
-
-	t.Log("no config")
+	t.Log("config (run ttl 5m)")
 	{
-		p, err := NewCPUCollector("")
+		c, err := NewCPUCollector(filepath.Join("testdata", "config_run_ttl_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-
-		expect := "cpu"
-		id := p.ID()
-		if id != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, id)
+		if c.(*CPU).runTTL != 5*time.Minute {
+			t.Fatal("expected 5m")
 		}
 	}
 
-	t.Log("config (config id setting)")
+	t.Log("config (run ttl invalid)")
 	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config_id_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-
-		expect := "foo"
-		id := c.ID()
-		if id != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, id)
+		_, err := NewCPUCollector(filepath.Join("testdata", "config_run_ttl_invalid_setting"))
+		if err == nil {
+			t.Fatal("expected error")
 		}
 	}
 }
@@ -193,71 +185,41 @@ func TestCPUID(t *testing.T) {
 func TestCPUFlush(t *testing.T) {
 	t.Log("Testing Flush")
 
-	t.Log("no config")
-	{
-		c, err := NewCPUCollector("")
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-		metrics := c.Flush()
-		if metrics == nil {
-			t.Fatal("expected metrics")
-		}
-		if len(metrics) > 0 {
-			t.Fatalf("expected empty metrics, got %v", metrics)
-		}
+	c, err := NewCPUCollector("")
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
-	t.Log("config (config.json)")
-	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-
-		metrics := c.Flush()
-		if metrics == nil {
-			t.Fatal("expected error")
-		}
-		if len(metrics) > 0 {
-			t.Fatalf("expected empty metrics, got %v", metrics)
-		}
+	metrics := c.Flush()
+	if metrics == nil {
+		t.Fatal("expected metrics")
+	}
+	if len(metrics) > 0 {
+		t.Fatalf("expected empty metrics, got %v", metrics)
 	}
 }
 
 func TestCPUCollect(t *testing.T) {
 	t.Log("Testing Collect")
 
-	t.Log("no config")
-	{
-		c, err := NewCPUCollector("")
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 
-		if err := c.Collect(); err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
+	c, err := NewCPUCollector(filepath.Join("testdata", "config"))
+	if err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
 	}
 
-	t.Log("config (config.json)")
-	{
-		c, err := NewCPUCollector(filepath.Join("testdata", "config"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
+	if err := c.Collect(); err != nil {
+		t.Fatalf("expected NO error, got (%s)", err)
+	}
 
-		if err := c.Collect(); err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-
-		metrics := c.Flush()
-		if metrics == nil {
-			t.Fatal("expected error")
-		}
-		if len(metrics) == 0 {
-			t.Fatalf("expected metrics, got %v", metrics)
-		}
+	metrics := c.Flush()
+	if metrics == nil {
+		t.Fatal("expected error")
+	}
+	if len(metrics) == 0 {
+		t.Fatalf("expected metrics, got %v", metrics)
 	}
 }

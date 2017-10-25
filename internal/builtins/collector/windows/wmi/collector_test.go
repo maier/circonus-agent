@@ -49,9 +49,8 @@ func TestID(t *testing.T) {
 	}
 
 	expect := "test"
-	id := c.ID()
-	if id != expect {
-		t.Fatalf("expected (%s) got (%s)", expect, id)
+	if c.ID() != expect {
+		t.Fatalf("expected (%s) got (%s)", expect, c.ID())
 	}
 }
 

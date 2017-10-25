@@ -113,8 +113,12 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 		}
 	}
 
-	if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-		cpu.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+	if cfg.MetricsDefaultStatus != "" {
+		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
+			cpu.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+		} else {
+			return nil, errors.Errorf("wmi.cpu invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+		}
 	}
 
 	if cfg.RunTTL != "" {
