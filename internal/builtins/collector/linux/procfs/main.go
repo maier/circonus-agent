@@ -6,50 +6,28 @@
 package procfs
 
 import (
-	"time"
+	"path"
+	"runtime"
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
-	cgm "github.com/circonus-labs/circonus-gometrics"
+	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
+	"github.com/pkg/errors"
 )
 
-// New creates new procfs collector
-func New(cfgFile string) (collector.Collector, error) {
-	return &pfscommon{
-		id:        "not_implemented",
-		lastError: collector.ErrNotImplemented,
-	}, collector.ErrNotImplemented
-}
-
-// Collect returns collector metrics
-func (p *pfscommon) Collect() error {
-	p.Lock()
-	defer p.Unlock()
-	return collector.ErrNotImplemented
-}
-
-// Flush returns last metrics collected
-func (p *pfscommon) Flush() cgm.Metrics {
-	p.Lock()
-	defer p.Unlock()
-	return cgm.Metrics{}
-}
-
-// ID returns the id of the instance
-func (p *pfscommon) ID() string {
-	p.Lock()
-	defer p.Unlock()
-	return p.id
-}
-
-// Inventory returns collector stats for /inventory endpoint
-func (p *pfscommon) Inventory() collector.InventoryStats {
-	p.Lock()
-	defer p.Unlock()
-	return collector.InventoryStats{
-		ID:              p.id,
-		LastRunStart:    p.lastStart.Format(time.RFC3339Nano),
-		LastRunEnd:      p.lastEnd.Format(time.RFC3339Nano),
-		LastRunDuration: p.lastRunDuration.String(),
-		LastError:       p.lastError.Error(),
+// New creates new ProcFS collector
+func New() ([]collector.Collector, error) {
+	if runtime.GOOS != "linux" {
+		return []collector.Collector{}, nil
 	}
+
+	collectors := make([]collector.Collector, 10)
+
+	c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu"))
+	if err != nil {
+		return []collector.Collector{}, errors.Wrap(err, "initializing procfs.cpu")
+	}
+
+	collectors = append(collectors, c)
+
+	return collectors, nil
 }

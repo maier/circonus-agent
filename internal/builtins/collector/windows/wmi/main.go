@@ -18,8 +18,8 @@ import (
 
 func initialize() error {
 	// This initialization prevents a memory leak on WMF 5+. See
-	// https://github.com/martinlindhe/wmi_exporter/issues/77 and linked issues
-	// for details.
+	// https://github.com/martinlindhe/wmi_exporter/issues/77 and
+	// linked issues for details.
 	s, err := wmi.InitializeSWbemServices(wmi.DefaultClient)
 	if err != nil {
 		return err
