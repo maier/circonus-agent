@@ -9,11 +9,14 @@ package wmi
 
 import (
 	"path"
+	"runtime"
 
 	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
+	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/viper"
 )
 
 func initialize() error {
@@ -30,19 +33,43 @@ func initialize() error {
 
 // New creates new WMI collector
 func New() ([]collector.Collector, error) {
+	none := []collector.Collector{}
+
+	if runtime.GOOS != "windows" {
+		return none, nil
+	}
 
 	if err := initialize(); err != nil {
-		return []collector.Collector{}, err
+		return windows, err
 	}
 
-	collectors := make([]collector.Collector, 10)
+	l := log.With().Str("pkg", "builtins.wmi").Logger()
 
-	c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu"))
-	if err != nil {
-		return []collector.Collector{}, errors.Wrap(err, "initializing wmi.cpu")
+	enbledCollectors := viper.GetStringSlice(config.KeyCollectors)
+	if len(enbledCollectors) == 0 {
+		l.Info().Msg("no builtin collectors enabled")
+		return none, nil
 	}
 
-	collectors = append(collectors, c)
+	collectors := make([]collector.Collector, len(enbledCollectors))
+	for _, name := range enbledCollectors {
+		switch name {
+		case "cpu":
+			c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu"))
+			if err != nil {
+				l.Error().
+					Str("name", name).
+					Err(err).
+					Msg("initializing builtin collector")
+			} else {
+				collectors = append(collectors, c)
+			}
+		default:
+			l.Warn().
+				Str("name", name).
+				Msg("unknown builtin collector, ignoring")
+		}
+	}
 
 	return collectors, nil
 }

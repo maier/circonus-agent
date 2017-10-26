@@ -113,6 +113,20 @@ func init() {
 	}
 
 	{
+		var (
+			key         = config.KeyCollectors
+			longOpt     = "collectors"
+			envVar      = release.ENVPREFIX + "_COLLECTORS"
+			description = "List of builtin collectors to enable"
+		)
+
+		RootCmd.Flags().StringSlice(longOpt, defaults.Collectors, desc(description, envVar))
+		viper.BindPFlag(key, RootCmd.Flags().Lookup(longOpt))
+		viper.BindEnv(key, envVar)
+		viper.SetDefault(key, defaults.Collectors)
+	}
+
+	{
 		const (
 			key         = config.KeyListenSocket
 			longOpt     = "listen-socket"

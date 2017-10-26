@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/circonus-labs/circonus-agent/internal/builtins"
 	"github.com/circonus-labs/circonus-agent/internal/config"
 	"github.com/circonus-labs/circonus-agent/internal/plugins"
 	"github.com/circonus-labs/circonus-agent/internal/release"
@@ -30,6 +31,11 @@ func New() (*Agent, error) {
 	// validate the configuration
 	//
 	err = config.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	a.builtins, err = builtins.New()
 	if err != nil {
 		return nil, err
 	}

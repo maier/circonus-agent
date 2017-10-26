@@ -8,29 +8,13 @@
 package builtins
 
 import (
-	"os"
-	"path"
-
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector/linux/procfs"
-	"github.com/circonus-labs/circonus-agent/internal/config/defaults"
-	"github.com/pkg/errors"
 )
 
 func (b *Builtins) configure() error {
-	// CPU metrics
-	{
-		cfg := path.Join(defaults.EtcPath, "cpu.json")
-		if _, err := os.Stat(cfg); os.IsNotExist(err) {
-			cfg = ""
-		}
-
-		cpu, err := procfs.NewCPUCollector(cfg)
-		if err != nil {
-			return errors.Wrap(err, "procfs.cpu")
-		}
-
-		b.collectors[cpu.ID()] = cpu
+	collectors, err := procfs.New()
+	for _, c := range collectors {
+		b.collectors[c.ID()] = c
 	}
-
 	return nil
 }

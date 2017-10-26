@@ -110,11 +110,21 @@ var (
 	//   /sbin     (e.g. /opt/circonus/agent/sbin)
 	BasePath = ""
 
+	// Collectors defines the default builtin collectors to enable
+	// contains collectors for all OS; those not applicable to given OS will be ignored
+	Collectors = []string{"cpu"}
+
 	// EtcPath returns the default etc directory within base directory
 	EtcPath = "" // (e.g. /opt/circonus/agent/etc)
 
 	// PluginPath returns the default plugin path
 	PluginPath = "" // (e.g. /opt/circonus/agent/plugins)
+
+	// ReverseCreateCheckTitle to use if creating a check
+	ReverseCreateCheckTitle = ""
+
+	// ReverseTarget defaults to return from os.Hostname()
+	ReverseTarget = ""
 
 	// SSLCertFile returns the deefault ssl cert file name
 	SSLCertFile = "" // (e.g. /opt/circonus/agent/etc/agent.pem)
@@ -124,12 +134,6 @@ var (
 
 	// StatsdConf returns the default statsd config file
 	StatsdConf = "" // (e.g. /opt/circonus/agent/etc/statsd.json)
-
-	// ReverseTarget defaults to return from os.Hostname()
-	ReverseTarget = ""
-
-	// ReverseCreateCheckTitle to use if creating a check
-	ReverseCreateCheckTitle = ""
 )
 
 func init() {
