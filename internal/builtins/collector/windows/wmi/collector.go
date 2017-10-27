@@ -32,7 +32,7 @@ func (c *wmicommon) Collect() error {
 func (c *wmicommon) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
-	return cgm.Metrics{}
+	return c.lastMetrics
 }
 
 // ID returns id of collector
@@ -55,11 +55,25 @@ func (c *wmicommon) Inventory() collector.InventoryStats {
 	}
 }
 
+// cleanName is used to clean the metric name
+func (c *wmicommon) cleanName(name string) string {
+	return c.metricNameRegex.ReplaceAllString(name, c.metricNameChar)
+}
+
 // addMetric to internal buffer if metric is active
-func (c *wmicommon) addMetric(metrics *cgm.Metrics, mname, mtype string, mval interface{}) {
+func (c *wmicommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype string, mval interface{}) {
+	mname = c.cleanName(mname)
 	active, found := c.metricStatus[mname]
+
+	metricName = ""
+	if prefix != "" {
+		metricName = prefix + "`" + mname
+	} else {
+		metricName = mname
+	}
+
 	if (found && active) || (!found && c.metricDefaultActive) {
-		(*metrics)[mname] = cgm.Metric{Type: mtype, Value: mval}
+		(*metrics)[metricName] = cgm.Metric{Type: mtype, Value: mval}
 	}
 }
 

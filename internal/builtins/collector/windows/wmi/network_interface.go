@@ -12,23 +12,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
-	cgm "github.com/circonus-labs/circonus-gometrics"
-	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
 
-// Memory metrics from the Windows Management Interface (wmi)
-type Memory struct {
+// NetworkInterface metrics from the Windows Management Interface (wmi)
+type NetworkInterface struct {
 	wmicommon
+	include *regexp.Regexp
+	exclude *regexp.Regexp
 }
 
-// memoryOptions defines what elements can be overriden in a config file
-type memoryOptions struct {
+// networkInterfaceOptions defines what elements can be overriden in a config file
+type networkInterfaceOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
+	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
 	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
@@ -37,45 +38,37 @@ type memoryOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// Win32_PerfFormattedData_PerfOS_Memory defines the metrics to collect
-type Win32_PerfFormattedData_PerfOS_Memory struct {
-	AvailableBytes                  uint64
-	CacheBytes                      uint64
-	CacheFaultsPersec               uint64
-	CommittedBytes                  uint64
-	DemandZeroFaultsPersec          uint64
-	FreeAndZeroPageListBytes        uint64
-	FreeSystemPageTableEntries      uint64
-	ModifiedPageListBytes           uint64
+// Win32_PerfRawData_Tcpip_NetworkInterface defines the metrics to collect
+type Win32_PerfRawData_Tcpip_NetworkInterface struct {
+	BytesReceivedPersec             uint64
+	BytesSentPersec                 uint64
+	BytesTotalPersec                uint64
+	CurrentBandwidth                uint64
 	Name                            string
-	PageFaultsPersec                uint64
-	PageReadsPersec                 uint64
-	PagesInputPersec                uint64
-	PagesOutputPersec               uint64
-	PagesPersec                     uint64
-	PageWritesPersec                uint64
-	PercentCommittedBytesInUse      uint64
-	PoolNonpagedAllocs              uint64
-	PoolNonpagedBytes               uint64
-	PoolPagedAllocs                 uint64
-	PoolPagedBytes                  uint64
-	PoolPagedResidentBytes          uint64
-	StandbyCacheCoreBytes           uint64
-	StandbyCacheNormalPriorityBytes uint64
-	StandbyCacheReserveBytes        uint64
-	SystemCacheResidentBytes        uint64
-	SystemCodeResidentBytes         uint64
-	SystemCodeTotalBytes            uint64
-	SystemDriverTotalBytes          uint64
-	TransitionFaultsPersec          uint64
-	TransitionPagesRePurposedPersec uint64
-	WriteCopiesPersec               uint64
+	OffloadedConnections            uint64
+	OutputQueueLength               uint64
+	PacketsOutboundDiscarded        uint64
+	PacketsOutboundErrors           uint64
+	PacketsPersec                   uint64
+	PacketsReceivedDiscarded        uint64
+	PacketsReceivedErrors           uint64
+	PacketsReceivedNonUnicastPersec uint64
+	PacketsReceivedPersec           uint64
+	PacketsReceivedUnicastPersec    uint64
+	PacketsReceivedUnknown          uint64
+	PacketsSentNonUnicastPersec     uint64
+	PacketsSentPersec               uint64
+	PacketsSentUnicastPersec        uint64
+	TCPActiveRSCConnections         uint64
+	TCPRSCAveragePacketSize         uint64
+	TCPRSCCoalescedPacketsPersec    uint64
+	TCPRSCExceptionsPersec          uint64
 }
 
-// NewMemoryCollector creates new wmi collector
-func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
-	c := Memory{}
-	c.id = "memory"
+// NewNetworkInterfaceCollector creates new wmi collector
+func NewNetworkInterfaceCollector(cfgBaseName string) (collector.Collector, error) {
+	c := NetworkInterface{}
+	c.id = "network_interface"
 	c.lastMetrics = cgm.Metrics{}
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
@@ -83,24 +76,45 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 	c.metricNameRegex = defaultMetricNameRegex
 	c.metricStatus = map[string]bool{}
 
+	c.include = regexp.MustCompile(`.+`)
+	c.exclude = regexp.MustCompile(``)
+
 	if cfgBaseName == "" {
 		return &c, nil
 	}
 
-	var cfg memoryOptions
+	var cfg networkInterfaceOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
 		}
-		return nil, errors.Wrap(err, "wmi.memory config")
+		return nil, errors.Wrap(err, "wmi.network_interface config")
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
 
 	if cfg.ID != "" {
 		c.id = cfg.ID
+	}
+
+	// include regex
+	if cfg.IncludeRegex != "" {
+		rx, err := regexp.CompilePOSIX(cfg.IncludeRegex)
+		if err != nil {
+			return nil, errors.Wrap(err, "wmi.network_interface compiling include regex")
+		}
+		c.include = rx
+	}
+
+	// exclude regex
+	if cfg.ExcludeRegex != "" {
+		rx, err := regexp.CompilePOSIX(cfg.ExcludeRegex)
+		if err != nil {
+			return nil, errors.Wrap(err, "wmi.network_interface compiling exclude regex")
+		}
+		c.exclude = rx
 	}
 
 	if len(cfg.MetricsEnabled) > 0 {
@@ -118,14 +132,14 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
 		} else {
-			return nil, errors.Errorf("wmi.memory invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("wmi.network_interface invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
 	}
 
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "wmi.memory compile metric_name_regex")
+			return nil, errors.Wrapf(err, "wmi.network_interface compile metric_name_regex")
 		}
 		c.metricNameRegex = rx
 	}
@@ -137,7 +151,7 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.memory parsing run_ttl")
+			return nil, errors.Wrap(err, "wmi.network_interface parsing run_ttl")
 		}
 		c.runTTL = dur
 	}
@@ -146,7 +160,7 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *Memory) Collect() error {
+func (c *NetworkInterface) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()
@@ -168,21 +182,31 @@ func (c *Memory) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	var dst []Win32_PerfFormattedData_PerfOS_Memory
+	var dst []Win32_PerfRawData_Tcpip_NetworkInterface
 	qry := wmi.CreateQuery(dst, "")
 	if err := wmi.Query(qry, &dst); err != nil {
 		c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
 		c.setStatus(metrics, err)
-		return errors.Wrap(err, "wmi.memory")
+		return errors.Wrap(err, "wmi.network_interface")
 	}
 
 	for _, item := range dst {
-		pfx := c.id
-		if item.Name != "" {
-			pfx += "`" + c.cleanName(item.Name)
-		}
-		d := structs.Map(item) // there is only one memory output
 
+		// apply include/exclude to CLEAN item name
+		itemName := c.cleanName(item.Name)
+		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
+			continue
+		}
+
+		// adjust prefix, add item name
+		pfx := c.id
+		if strings.Contains(item.Name, "_Total") { // use the unclean name
+			pfx += "`total"
+		} else {
+			pfx += "`" + itemName
+		}
+
+		d := structs.Map(item)
 		for name, val := range d {
 			if name == "Name" {
 				continue
