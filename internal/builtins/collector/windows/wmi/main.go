@@ -51,23 +51,36 @@ func New() ([]collector.Collector, error) {
 		return none, nil
 	}
 
+	logError := func(name string, err error) {
+		l.Error().
+			Str("name", name).
+			Err(err).
+			Msg("initializing builtin collector")
+	}
+
 	collectors := make([]collector.Collector, len(enbledCollectors))
 	for _, name := range enbledCollectors {
 		switch name {
-		case "cpu":
-			c, err := NewCPUCollector(path.Join(defaults.EtcPath, "cpu"))
+		case "processor":
+			c, err := NewProcessorCollector(path.Join(defaults.EtcPath, "processor"))
 			if err != nil {
-				l.Error().
-					Str("name", name).
-					Err(err).
-					Msg("initializing builtin collector")
-			} else {
-				collectors = append(collectors, c)
+				logError(name, err)
+				continue
 			}
+			collectors = append(collectors, c)
+
+		case "memory":
+			c, err := NewMemoryCollector(path.Join(defaults.EtcPath, "memory"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
 		default:
 			l.Warn().
 				Str("name", name).
-				Msg("unknown builtin collector, ignoring")
+				Msg("unknown builtin collector for this OS, ignoring")
 		}
 	}
 

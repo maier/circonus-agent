@@ -22,8 +22,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// CPU metrics from the Windows Management Interface (wmi)
-type CPU struct {
+// Processor metrics from the Windows Management Interface (wmi)
+type Processor struct {
 	wmicommon
 	numCPU        float64
 	reportAllCPUs bool // may be overriden in config file
@@ -58,89 +58,89 @@ type Win32_PerfFormattedData_PerfOS_Processor struct {
 	PercentUserTime       uint64
 }
 
-// NewCPUCollector creates new wmi cpu collector
-func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
-	id := "cpu"
-	cpu := CPU{}
+// NewProcessorCollector creates new wmi collector
+func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
+	id := "processor"
+	c := Processor{}
 
 	var dst []Win32_PerfFormattedData_PerfOS_Processor
-	cpu.query = wmi.CreateQuery(&dst, "")
+	c.query = wmi.CreateQuery(&dst, "")
 
-	cpu.id = id
-	cpu.logger = log.With().Str("pkg", "builtins.wmi.cpu").Logger()
-	cpu.numCPU = float64(runtime.NumCPU())
-	cpu.metricStatus = map[string]bool{}
-	cpu.metricDefaultActive = true
-	cpu.reportAllCPUs = true
-	cpu.lastMetrics = cgm.Metrics{}
+	c.id = id
+	c.logger = log.With().Str("pkg", "builtins.wmi.processor").Logger()
+	c.numCPU = float64(runtime.NumCPU())
+	c.metricStatus = map[string]bool{}
+	c.metricDefaultActive = true
+	c.reportAllCPUs = true
+	c.lastMetrics = cgm.Metrics{}
 
 	if cfgBaseName == "" {
-		return &cpu, nil
+		return &c, nil
 	}
 
 	var cfg options
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
-		cpu.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
-			return &cpu, nil
+			return &c, nil
 		}
-		return nil, errors.Wrap(err, "wmi.cpu config")
+		return nil, errors.Wrap(err, "wmi.processor config")
 	}
 
-	cpu.logger.Debug().Interface("config", cfg).Msg("loaded config")
+	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
 
 	if cfg.ID != "" {
-		cpu.id = cfg.ID
+		c.id = cfg.ID
 	}
 
 	if cfg.AllCPU != "" {
 		rpt, err := strconv.ParseBool(cfg.AllCPU)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.cpu parsing report_all_cpus")
+			return nil, errors.Wrap(err, "wmi.processor parsing report_all_cpus")
 		}
-		cpu.reportAllCPUs = rpt
+		c.reportAllCPUs = rpt
 	}
 
 	if len(cfg.MetricsEnabled) > 0 {
 		for _, name := range cfg.MetricsEnabled {
-			cpu.metricStatus[name] = true
+			c.metricStatus[name] = true
 		}
 	}
 	if len(cfg.MetricsDisabled) > 0 {
 		for _, name := range cfg.MetricsDisabled {
-			cpu.metricStatus[name] = false
+			c.metricStatus[name] = false
 		}
 	}
 
 	if cfg.MetricsDefaultStatus != "" {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			cpu.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
 		} else {
-			return nil, errors.Errorf("wmi.cpu invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("wmi.processor invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
 	}
 
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.cpu parsing run_ttl")
+			return nil, errors.Wrap(err, "wmi.processor parsing run_ttl")
 		}
-		cpu.runTTL = dur
+		c.runTTL = dur
 	}
 
-	return &cpu, nil
+	return &c, nil
 }
 
 // Flush returns the last metrics
-func (c *CPU) Flush() cgm.Metrics {
+func (c *Processor) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
 	return c.lastMetrics
 }
 
 // Collect metrics from the wmi resource
-func (c *CPU) Collect() error {
+func (c *Processor) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()
@@ -158,35 +158,14 @@ func (c *CPU) Collect() error {
 		return collector.ErrAlreadyRunning
 	}
 
-	resetStatus := func(err error) {
-		c.Lock()
-		c.lastEnd = time.Now()
-		c.lastRunDuration = time.Since(c.lastStart)
-		if err != nil {
-			c.lastError = err.Error()
-			// on error, ensure metrics are reset
-			// do not keep returning a stale set of metrics
-			c.lastMetrics = cgm.Metrics{}
-		}
-		c.running = false
-		c.Unlock()
-	}
-
 	c.running = true
 	c.lastStart = time.Now()
 	c.Unlock()
 
 	var dst []Win32_PerfFormattedData_PerfOS_Processor
 	if err := wmi.Query(c.query, &dst); err != nil {
-		resetStatus(err)
-		return errors.Wrap(err, "wmi.cpu")
-	}
-
-	addMetric := func(mname, mtype string, mval interface{}) {
-		active, found := c.metricStatus[mname]
-		if (found && active) || (!found && c.metricDefaultActive) {
-			metrics[mname] = cgm.Metric{Type: mtype, Value: mval}
-		}
+		c.setStatus(metrics, err)
+		return errors.Wrap(err, "wmi.processor")
 	}
 
 	for _, group := range dst {
@@ -200,26 +179,22 @@ func (c *CPU) Collect() error {
 			pfx += group.Name
 		}
 
-		addMetric(pfx+"PercentC1Time", "L", group.PercentC1Time)
-		addMetric(pfx+"PercentC2Time", "L", group.PercentC2Time)
-		addMetric(pfx+"PercentC3Time", "L", group.PercentC3Time)
-		addMetric(pfx+"PercentIdleTime", "L", group.PercentIdleTime)
-		addMetric(pfx+"PercentInterruptTime", "L", group.PercentInterruptTime)
-		addMetric(pfx+"PercentDPCTime", "L", group.PercentDPCTime)
-		addMetric(pfx+"PercentPrivilegedTime", "L", group.PercentPrivilegedTime)
-		addMetric(pfx+"PercentUserTime", "L", group.PercentUserTime)
-		addMetric(pfx+"PercentProcessorTime", "L", group.PercentProcessorTime)
-		addMetric(pfx+"C1TransitionsPersec", "L", group.C1TransitionsPersec)
-		addMetric(pfx+"C2TransitionsPersec", "L", group.C2TransitionsPersec)
-		addMetric(pfx+"C3TransitionsPersec", "L", group.C3TransitionsPersec)
-		addMetric(pfx+"InterruptsPersec", "L", group.InterruptsPersec)
-		addMetric(pfx+"DPCsQueuedPersec", "L", group.DPCsQueuedPersec)
+		c.addMetric(pfx+"PercentC1Time", "L", group.PercentC1Time)
+		c.addMetric(pfx+"PercentC2Time", "L", group.PercentC2Time)
+		c.addMetric(pfx+"PercentC3Time", "L", group.PercentC3Time)
+		c.addMetric(pfx+"PercentIdleTime", "L", group.PercentIdleTime)
+		c.addMetric(pfx+"PercentInterruptTime", "L", group.PercentInterruptTime)
+		c.addMetric(pfx+"PercentDPCTime", "L", group.PercentDPCTime)
+		c.addMetric(pfx+"PercentPrivilegedTime", "L", group.PercentPrivilegedTime)
+		c.addMetric(pfx+"PercentUserTime", "L", group.PercentUserTime)
+		c.addMetric(pfx+"PercentProcessorTime", "L", group.PercentProcessorTime)
+		c.addMetric(pfx+"C1TransitionsPersec", "L", group.C1TransitionsPersec)
+		c.addMetric(pfx+"C2TransitionsPersec", "L", group.C2TransitionsPersec)
+		c.addMetric(pfx+"C3TransitionsPersec", "L", group.C3TransitionsPersec)
+		c.addMetric(pfx+"InterruptsPersec", "L", group.InterruptsPersec)
+		c.addMetric(pfx+"DPCsQueuedPersec", "L", group.DPCsQueuedPersec)
 	}
 
-	c.Lock()
-	c.lastMetrics = metrics
-	c.Unlock()
-
-	resetStatus(nil)
+	c.setStatus(metrics, nil)
 	return nil
 }

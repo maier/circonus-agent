@@ -54,3 +54,29 @@ func (c *wmicommon) Inventory() collector.InventoryStats {
 		LastError:       c.lastError,
 	}
 }
+
+// addMetric to internal buffer if metric is active
+func (c *wmicommon) addMetric(mname, mtype string, mval interface{}) {
+	active, found := c.metricStatus[mname]
+	if (found && active) || (!found && c.metricDefaultActive) {
+		metrics[mname] = cgm.Metric{Type: mtype, Value: mval}
+	}
+}
+
+// setStatus is used in Collect to set the collector status
+func (c *wmicommon) setStatus(metrics cgm.Metrics, err error) {
+	c.Lock()
+	if err == nil {
+		c.lastError = ""
+		c.lastMetrics = metrics
+	} else {
+		c.lastError = err.Error()
+		// on error, ensure metrics are reset
+		// do not keep returning a stale set of metrics
+		c.lastMetrics = cgm.Metrics{}
+	}
+	c.lastEnd = time.Now()
+	c.lastRunDuration = time.Since(c.lastStart)
+	c.running = false
+	c.Unlock()
+}

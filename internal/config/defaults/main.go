@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/circonus-labs/circonus-agent/internal/release"
 )
@@ -111,8 +112,8 @@ var (
 	BasePath = ""
 
 	// Collectors defines the default builtin collectors to enable
-	// contains collectors for all OS; those not applicable to given OS will be ignored
-	Collectors = []string{"cpu"}
+	// OS specific - see init() below
+	Collectors = []string{}
 
 	// EtcPath returns the default etc directory within base directory
 	EtcPath = "" // (e.g. /opt/circonus/agent/etc)
@@ -166,4 +167,16 @@ func init() {
 	}
 
 	ReverseCreateCheckTitle = ReverseTarget + " /agent"
+
+	switch runtime.GOOS {
+	case "linux":
+		Collectors = []string{
+			"cpu",
+		}
+	case "windows":
+		Collectors = []string{
+			"processor",
+			"memory",
+		}
+	}
 }
