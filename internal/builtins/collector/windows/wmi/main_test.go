@@ -9,10 +9,18 @@ package wmi
 
 import (
 	"testing"
+
+	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/spf13/viper"
 )
 
 func TestNew(t *testing.T) {
 	t.Log("Testing New")
+
+	viper.Set(config.KeyCollectors, []string{
+		"memory",
+		"processor",
+	})
 
 	c, err := New()
 	if err != nil {

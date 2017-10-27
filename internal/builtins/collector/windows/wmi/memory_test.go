@@ -61,7 +61,7 @@ func TestNewMemoryCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if c.(*Processor).id != "foo" {
+		if c.(*Memory).id != "foo" {
 			t.Fatalf("expected foo, got (%s)", c.ID())
 		}
 	}
@@ -72,15 +72,15 @@ func TestNewMemoryCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if len(c.(*Processor).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Processor).metricStatus)
+		if len(c.(*Memory).metricStatus) == 0 {
+			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Memory).metricStatus)
 		}
-		enabled, ok := c.(*Processor).metricStatus["foo"]
+		enabled, ok := c.(*Memory).metricStatus["foo"]
 		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Processor).metricStatus)
+			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Memory).metricStatus)
 		}
 		if !enabled {
-			t.Fatalf("expected 'foo' to be enabled in metric status settings, got (%#v)", c.(*Processor).metricStatus)
+			t.Fatalf("expected 'foo' to be enabled in metric status settings, got (%#v)", c.(*Memory).metricStatus)
 		}
 	}
 
@@ -90,15 +90,15 @@ func TestNewMemoryCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if len(c.(*Processor).metricStatus) == 0 {
-			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Processor).metricStatus)
+		if len(c.(*Memory).metricStatus) == 0 {
+			t.Fatalf("expected >0 metric status settings, got (%#v)", c.(*Memory).metricStatus)
 		}
-		enabled, ok := c.(*Processor).metricStatus["foo"]
+		enabled, ok := c.(*Memory).metricStatus["foo"]
 		if !ok {
-			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Processor).metricStatus)
+			t.Fatalf("expected 'foo' key in metric status settings, got (%#v)", c.(*Memory).metricStatus)
 		}
 		if enabled {
-			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*Processor).metricStatus)
+			t.Fatalf("expected 'foo' to be disabled in metric status settings, got (%#v)", c.(*Memory).metricStatus)
 		}
 	}
 
@@ -108,7 +108,7 @@ func TestNewMemoryCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if !c.(*Processor).metricDefaultActive {
+		if !c.(*Memory).metricDefaultActive {
 			t.Fatal("expected true")
 		}
 	}
@@ -119,7 +119,7 @@ func TestNewMemoryCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if c.(*Processor).metricDefaultActive {
+		if c.(*Memory).metricDefaultActive {
 			t.Fatal("expected false")
 		}
 	}
@@ -138,7 +138,7 @@ func TestNewMemoryCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		if c.(*Processor).runTTL != 5*time.Minute {
+		if c.(*Memory).runTTL != 5*time.Minute {
 			t.Fatal("expected 5m")
 		}
 	}
@@ -174,7 +174,7 @@ func TestMemoryFlush(t *testing.T) {
 func TestMemoryCollect(t *testing.T) {
 	t.Log("Testing Collect")
 
-	zerolog.SetGlobalLevel(zerolog.Disabled)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 	c, err := NewMemoryCollector("")
 	if err != nil {

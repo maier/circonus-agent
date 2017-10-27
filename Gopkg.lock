@@ -26,6 +26,12 @@
   revision = "6e85b9352cf0c2bb969831347491388bb3ae9c69"
 
 [[projects]]
+  name = "github.com/fatih/structs"
+  packages = ["."]
+  revision = "a720dfa8df582c51dee1b36feabb906bde1588bd"
+  version = "v1.0"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "629574ca2a5df945712d3079857300b5e4da0236"
@@ -196,6 +202,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "be786f338720ed8153e404864a39749ac384033a7dd7b8d44055fb081e31bf94"
+  inputs-digest = "8ab8d38792a22aadac53852b71f751548de5e444368934f157cd57c977453c2d"
   solver-name = "gps-cdcl"
   solver-version = 1

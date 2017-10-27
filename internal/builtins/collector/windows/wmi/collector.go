@@ -56,10 +56,10 @@ func (c *wmicommon) Inventory() collector.InventoryStats {
 }
 
 // addMetric to internal buffer if metric is active
-func (c *wmicommon) addMetric(mname, mtype string, mval interface{}) {
+func (c *wmicommon) addMetric(metrics *cgm.Metrics, mname, mtype string, mval interface{}) {
 	active, found := c.metricStatus[mname]
 	if (found && active) || (!found && c.metricDefaultActive) {
-		metrics[mname] = cgm.Metric{Type: mtype, Value: mval}
+		(*metrics)[mname] = cgm.Metric{Type: mtype, Value: mval}
 	}
 }
 

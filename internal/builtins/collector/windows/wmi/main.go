@@ -40,7 +40,7 @@ func New() ([]collector.Collector, error) {
 	}
 
 	if err := initialize(); err != nil {
-		return windows, err
+		return none, err
 	}
 
 	l := log.With().Str("pkg", "builtins.wmi").Logger()

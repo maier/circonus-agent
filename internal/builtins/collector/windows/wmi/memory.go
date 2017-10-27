@@ -26,8 +26,8 @@ type Memory struct {
 	wmicommon
 }
 
-// options defines what elements can be overriden in a config file
-type options struct {
+// memoryOptions defines what elements can be overriden in a config file
+type memoryOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
 	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
@@ -43,7 +43,7 @@ type Win32_PerfFormattedData_PerfOS_Memory struct {
 	CommittedBytes                  uint64
 	DemandZeroFaultsPersec          uint64
 	FreeAndZeroPageListBytes        uint64
-	FreeSystemPageTableEnteries     uint64
+	FreeSystemPageTableEntries      uint64
 	ModifiedPageListBytes           uint64
 	PageFaultsPersec                uint64
 	PageReadsPersec                 uint64
@@ -53,18 +53,19 @@ type Win32_PerfFormattedData_PerfOS_Memory struct {
 	PageWritesPersec                uint64
 	PercentCommittedBytesInUse      uint64
 	PoolNonpagedAllocs              uint64
+	PoolNonpagedBytes               uint64
 	PoolPagedAllocs                 uint64
 	PoolPagedBytes                  uint64
 	PoolPagedResidentBytes          uint64
 	StandbyCacheCoreBytes           uint64
 	StandbyCacheNormalPriorityBytes uint64
-	StandbyCacheResidentBytes       uint64
+	StandbyCacheReserveBytes        uint64
 	SystemCacheResidentBytes        uint64
 	SystemCodeResidentBytes         uint64
 	SystemCodeTotalBytes            uint64
 	SystemDriverTotalBytes          uint64
-	TransitionFaultPersec           uint64
-	TransitionPagesRePurposePersec  uint64
+	TransitionFaultsPersec          uint64
+	TransitionPagesRePurposedPersec uint64
 	WriteCopiesPersec               uint64
 }
 
@@ -73,7 +74,7 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 	id := "memory"
 	c := Memory{}
 
-	var dst Win32_PerfFormattedData_PerfOS_Memory
+	var dst []Win32_PerfFormattedData_PerfOS_Memory
 	c.query = wmi.CreateQuery(&dst, "")
 
 	c.id = id
@@ -86,10 +87,10 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 		return &c, nil
 	}
 
-	var cfg options
+	var cfg memoryOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
-		p.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
 		}
@@ -162,47 +163,18 @@ func (c *Memory) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	var dst Win32_PerfFormattedData_PerfOS_Processor
+	var dst []Win32_PerfFormattedData_PerfOS_Memory
 	if err := wmi.Query(c.query, &dst); err != nil {
+		c.logger.Error().Err(err).Str("query", c.query).Msg("wmi error")
 		c.setStatus(metrics, err)
 		return errors.Wrap(err, "wmi.memory")
 	}
 
 	pfx := c.id + "`"
-	d := structs.Map(dst)
+	d := structs.Map(dst[0])
 	for name, val := range d {
-		addMetric(pfx+name, "L", val)
+		c.addMetric(&metrics, pfx+name, "L", val)
 	}
-
-	// addMetric(pfx+"AvailableBytes", "L", dst.AvailableBytes)
-	// addMetric(pfx+"CacheBytes", "L", dst.CacheBytes)
-	// addMetric(pfx+"CacheFaultsPersec", "L", dst.CacheFaultsPersec)
-	// addMetric(pfx+"CommittedBytes", "L", dst.CommittedBytes)
-	// addMetric(pfx+"DemandZeroFaultsPersec", "L", dst.DemandZeroFaultsPersec)
-	// addMetric(pfx+"FreeAndZeroPageListBytes", "L", dst.FreeAndZeroPageListBytes)
-	// addMetric(pfx+"FreeSystemPageTableEnteries", "L", dst.FreeSystemPageTableEnteries)
-	// addMetric(pfx+"ModifiedPageListBytes", "L", dst.ModifiedPageListBytes)
-	// addMetric(pfx+"PageFaultsPersec", "L", dst.PageFaultsPersec)
-	// addMetric(pfx+"PageReadsPersec", "L", dst.PageReadsPersec)
-	// addMetric(pfx+"PagesInputPersec", "L", dst.PagesInputPersec)
-	// addMetric(pfx+"PagesOutputPersec", "L", dst.PagesOutputPersec)
-	// addMetric(pfx+"PagesPersec", "L", dst.PagesPersec)
-	// addMetric(pfx+"PageWritesPersec", "L", dst.PageWritesPersec)
-	// addMetric(pfx+"PercentCommittedBytesInUse", "L", dst.PercentCommittedBytesInUse)
-	// addMetric(pfx+"PoolNonpagedAllocs", "L", dst.PoolNonpagedAllocs)
-	// addMetric(pfx+"PoolPagedAllocs", "L", dst.PoolPagedAllocs)
-	// addMetric(pfx+"PoolPagedBytes", "L", dst.PoolPagedBytes)
-	// addMetric(pfx+"PoolPagedResidentBytes", "L", dst.PoolPagedResidentBytes)
-	// addMetric(pfx+"StandbyCacheCoreBytes", "L", dst.StandbyCacheCoreBytes)
-	// addMetric(pfx+"StandbyCacheNormalPriorityBytes", "L", dst.StandbyCacheNormalPriorityBytes)
-	// addMetric(pfx+"StandbyCacheResidentBytes", "L", dst.StandbyCacheResidentBytes)
-	// addMetric(pfx+"SystemCacheResidentBytes", "L", dst.SystemCacheResidentBytes)
-	// addMetric(pfx+"SystemCodeResidentBytes", "L", dst.SystemCodeResidentBytes)
-	// addMetric(pfx+"SystemCodeTotalBytes", "L", dst.SystemCodeTotalBytes)
-	// addMetric(pfx+"SystemDriverTotalBytes", "L", dst.SystemDriverTotalBytes)
-	// addMetric(pfx+"TransitionFaultPersec", "L", dst.TransitionFaultPersec)
-	// addMetric(pfx+"TransitionPagesRePurposePersec", "L", dst.TransitionPagesRePurposePersec)
-	// addMetric(pfx+"WriteCopiesPersec", "L", dst.WriteCopiesPersec)
 
 	c.setStatus(metrics, nil)
 	return nil
