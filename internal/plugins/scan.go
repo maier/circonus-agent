@@ -27,6 +27,10 @@ func (p *Plugins) Scan(b *builtins.Builtins) error {
 	p.Lock()
 	defer p.Unlock()
 
+	if p.pluginDir == "" {
+		return nil
+	}
+
 	// initialRun fires each plugin one time. Unlike 'Run' it does
 	// not wait for plugins to finish this will provides:
 	//
