@@ -90,10 +90,6 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
 
-	if cfg.ID != "" {
-		c.id = cfg.ID
-	}
-
 	if cfg.EnableIPv4 != "" {
 		ipv4, err := strconv.ParseBool(cfg.EnableIPv4)
 		if err != nil {
@@ -108,6 +104,10 @@ func NewNetUDPCollector(cfgBaseName string) (collector.Collector, error) {
 			return nil, errors.Wrap(err, "wmi.processor parsing enable_ipv6")
 		}
 		c.ipv6Enabled = ipv6
+	}
+
+	if cfg.ID != "" {
+		c.id = cfg.ID
 	}
 
 	if len(cfg.MetricsEnabled) > 0 {
