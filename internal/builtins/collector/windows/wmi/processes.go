@@ -102,10 +102,6 @@ func NewProcessesCollector(cfgBaseName string) (collector.Collector, error) {
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
 
-	if cfg.ID != "" {
-		c.id = cfg.ID
-	}
-
 	// include regex
 	if cfg.IncludeRegex != "" {
 		rx, err := regexp.CompilePOSIX(cfg.IncludeRegex)
@@ -122,6 +118,10 @@ func NewProcessesCollector(cfgBaseName string) (collector.Collector, error) {
 			return nil, errors.Wrap(err, "wmi.processes compiling exclude regex")
 		}
 		c.exclude = rx
+	}
+
+	if cfg.ID != "" {
+		c.id = cfg.ID
 	}
 
 	if len(cfg.MetricsEnabled) > 0 {
