@@ -55,17 +55,6 @@ func TestNewProcessorCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (id setting)")
-	{
-		c, err := NewProcessorCollector(filepath.Join("testdata", "config_id_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*Processor).id != "foo" {
-			t.Fatalf("expected foo, got (%s)", c.ID())
-		}
-	}
-
 	t.Log("config (report all cpus setting true)")
 	{
 		c, err := NewProcessorCollector(filepath.Join("testdata", "config_report_all_cpus_true_setting"))
@@ -93,6 +82,17 @@ func TestNewProcessorCollector(t *testing.T) {
 		_, err := NewProcessorCollector(filepath.Join("testdata", "config_report_all_cpus_invalid_setting"))
 		if err == nil {
 			t.Fatal("expected error")
+		}
+	}
+
+	t.Log("config (id setting)")
+	{
+		c, err := NewProcessorCollector(filepath.Join("testdata", "config_id_setting"))
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		if c.(*Processor).id != "foo" {
+			t.Fatalf("expected foo, got (%s)", c.ID())
 		}
 	}
 
@@ -159,6 +159,37 @@ func TestNewProcessorCollector(t *testing.T) {
 		_, err := NewProcessorCollector(filepath.Join("testdata", "config_metrics_default_status_invalid_setting"))
 		if err == nil {
 			t.Fatal("expected error")
+		}
+	}
+
+	t.Log("config (metric name regex)")
+	{
+		c, err := NewProcessorCollector(filepath.Join("testdata", "config_metric_name_regex_valid_setting"))
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		expect := `^foo`
+		if c.(*Processor).metricNameRegex.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*Processor).metricNameRegex.String())
+		}
+	}
+
+	t.Log("config (metric name regex invalid)")
+	{
+		_, err := NewProcessorCollector(filepath.Join("testdata", "config_metric_name_regex_invalid_setting"))
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	}
+
+	t.Log("config (metric name char)")
+	{
+		c, err := NewProcessorCollector(filepath.Join("testdata", "config_metric_name_char_valid_setting"))
+		if err != nil {
+			t.Fatalf("expected NO error, got (%s)", err)
+		}
+		if c.(*Processor).metricNameChar != "-" {
+			t.Fatal("expected '-'")
 		}
 	}
 

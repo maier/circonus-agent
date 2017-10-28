@@ -90,16 +90,16 @@ func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
 
-	if cfg.ID != "" {
-		c.id = cfg.ID
-	}
-
 	if cfg.AllCPU != "" {
 		rpt, err := strconv.ParseBool(cfg.AllCPU)
 		if err != nil {
 			return nil, errors.Wrap(err, "wmi.processor parsing report_all_cpus")
 		}
 		c.reportAllCPUs = rpt
+	}
+
+	if cfg.ID != "" {
+		c.id = cfg.ID
 	}
 
 	if len(cfg.MetricsEnabled) > 0 {
