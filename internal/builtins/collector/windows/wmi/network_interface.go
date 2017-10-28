@@ -96,10 +96,6 @@ func NewNetworkInterfaceCollector(cfgBaseName string) (collector.Collector, erro
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
 
-	if cfg.ID != "" {
-		c.id = cfg.ID
-	}
-
 	// include regex
 	if cfg.IncludeRegex != "" {
 		rx, err := regexp.CompilePOSIX(cfg.IncludeRegex)
@@ -116,6 +112,10 @@ func NewNetworkInterfaceCollector(cfgBaseName string) (collector.Collector, erro
 			return nil, errors.Wrap(err, "wmi.network_interface compiling exclude regex")
 		}
 		c.exclude = rx
+	}
+
+	if cfg.ID != "" {
+		c.id = cfg.ID
 	}
 
 	if len(cfg.MetricsEnabled) > 0 {
