@@ -21,22 +21,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Memory metrics from the Windows Management Interface (wmi)
-type Memory struct {
-	wmicommon
-}
-
-// memoryOptions defines what elements can be overriden in a config file
-type memoryOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-}
-
 // Win32_PerfFormattedData_PerfOS_Memory defines the metrics to collect
 type Win32_PerfFormattedData_PerfOS_Memory struct {
 	AvailableBytes                  uint64
@@ -70,6 +54,22 @@ type Win32_PerfFormattedData_PerfOS_Memory struct {
 	TransitionFaultsPersec          uint64
 	TransitionPagesRePurposedPersec uint64
 	WriteCopiesPersec               uint64
+}
+
+// Memory metrics from the Windows Management Interface (wmi)
+type Memory struct {
+	wmicommon
+}
+
+// memoryOptions defines what elements can be overriden in a config file
+type memoryOptions struct {
+	ID                   string   `json:"id" toml:"id" yaml:"id"`
+	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
+	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewMemoryCollector creates new wmi collector

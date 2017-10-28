@@ -14,29 +14,10 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
-
-// PhysicalDisk metrics from the Windows Management Interface (wmi)
-type PhysicalDisk struct {
-	wmicommon
-	include *regexp.Regexp
-	exclude *regexp.Regexp
-}
-
-// physicalDiskOptions defines what elements can be overriden in a config file
-type physicalDiskOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
-	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-}
 
 // Win32_PerfFormattedData_PerfDisk_PhysicalDisk defines the metrics to collect
 type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct {
@@ -64,6 +45,26 @@ type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct {
 	PercentFreeSpace        uint32
 	PercentIdleTime         uint64
 	SplitIOPerSec           uint32
+}
+
+// PhysicalDisk metrics from the Windows Management Interface (wmi)
+type PhysicalDisk struct {
+	wmicommon
+	include *regexp.Regexp
+	exclude *regexp.Regexp
+}
+
+// physicalDiskOptions defines what elements can be overriden in a config file
+type physicalDiskOptions struct {
+	ID                   string   `json:"id" toml:"id" yaml:"id"`
+	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
+	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
+	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
+	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewPhysicalDiskCollector creates new wmi collector

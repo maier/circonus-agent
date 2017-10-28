@@ -21,6 +21,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Win32_PerfFormattedData_PerfOS_Objects defines the metrics to collect
+type Win32_PerfFormattedData_PerfOS_Objects struct {
+	Events     uint32
+	Mutexes    uint32
+	Name       string
+	Processes  uint32
+	Sections   uint32
+	Semaphores uint32
+	Threads    uint32
+}
+
 // Objects metrics from the Windows Management Interface (wmi)
 type Objects struct {
 	wmicommon
@@ -35,17 +46,6 @@ type objectsOptions struct {
 	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
 	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-}
-
-// Win32_PerfFormattedData_PerfOS_Objects defines the metrics to collect
-type Win32_PerfFormattedData_PerfOS_Objects struct {
-	Events     uint32
-	Mutexes    uint32
-	Name       string
-	Processes  uint32
-	Sections   uint32
-	Semaphores uint32
-	Threads    uint32
 }
 
 // NewObjectsCollector creates new wmi collector

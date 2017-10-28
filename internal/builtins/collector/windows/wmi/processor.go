@@ -22,25 +22,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Processor metrics from the Windows Management Interface (wmi)
-type Processor struct {
-	wmicommon
-	numCPU        float64
-	reportAllCPUs bool // may be overriden in config file
-}
-
-// processorOptions defines what elements can be overriden in a config file
-type processorOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	AllCPU               string   `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-}
-
 // Win32_PerfFormattedData_PerfOS_Processor defines the metrics to collect
 type Win32_PerfFormattedData_PerfOS_Processor struct {
 	Name                  string
@@ -58,6 +39,25 @@ type Win32_PerfFormattedData_PerfOS_Processor struct {
 	PercentPrivilegedTime uint64
 	PercentProcessorTime  uint64
 	PercentUserTime       uint64
+}
+
+// Processor metrics from the Windows Management Interface (wmi)
+type Processor struct {
+	wmicommon
+	numCPU        float64
+	reportAllCPUs bool // may be overriden in config file
+}
+
+// processorOptions defines what elements can be overriden in a config file
+type processorOptions struct {
+	ID                   string   `json:"id" toml:"id" yaml:"id"`
+	AllCPU               string   `json:"report_all_cpus" toml:"report_all_cpus" yaml:"report_all_cpus"`
+	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
+	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewProcessorCollector creates new wmi collector

@@ -14,9 +14,16 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
+
+// Win32_PerfFormattedData_PerfOS_PagingFile defines the metrics to collect
+type Win32_PerfFormattedData_PerfOS_PagingFile struct {
+	Name         string
+	PercentUsage uint32
+}
 
 // PagingFile metrics from the Windows Management Interface (wmi)
 type PagingFile struct {
@@ -36,12 +43,6 @@ type pagingFileOptions struct {
 	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
 	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-}
-
-// Win32_PerfFormattedData_PerfOS_PagingFile defines the metrics to collect
-type Win32_PerfFormattedData_PerfOS_PagingFile struct {
-	Name         string
-	PercentUsage uint32
 }
 
 // NewLogicalDiskCollector creates new wmi collector

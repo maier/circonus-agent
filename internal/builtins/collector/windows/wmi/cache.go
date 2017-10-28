@@ -14,25 +14,10 @@ import (
 
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 )
-
-// Cache metrics from the Windows Management Interface (wmi)
-type Cache struct {
-	wmicommon
-}
-
-// cacheOptions defines what elements can be overriden in a config file
-type cacheOptions struct {
-	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
-	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
-	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
-	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
-	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
-	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
-}
 
 // Win32_PerfFormattedData_PerfOS_Cache defines the metrics to collect
 type Win32_PerfFormattedData_PerfOS_Cache struct {
@@ -65,6 +50,22 @@ type Win32_PerfFormattedData_PerfOS_Cache struct {
 	SyncFastReadsPersec          uint32
 	SyncMDLReadsPersec           uint32
 	SyncPinReadsPersec           uint32
+}
+
+// Cache metrics from the Windows Management Interface (wmi)
+type Cache struct {
+	wmicommon
+}
+
+// cacheOptions defines what elements can be overriden in a config file
+type cacheOptions struct {
+	ID                   string   `json:"id" toml:"id" yaml:"id"`
+	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
+	MetricsDisabled      []string `json:"metrics_disabled" toml:"metrics_disabled" yaml:"metrics_disabled"`
+	MetricsDefaultStatus string   `json:"metrics_default_status" toml:"metrics_default_status" toml:"metrics_default_status"`
+	MetricNameRegex      string   `json:"metric_name_regex" toml:"metric_name_regex" yaml:"metric_name_regex"`
+	MetricNameChar       string   `json:"metric_name_char" toml:"metric_name_char" yaml:"metric_name_char"`
+	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
 // NewCacheCollector creates new wmi collector
