@@ -64,7 +64,6 @@ type processorOptions struct {
 func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Processor{}
 	c.id = "processor"
-	c.lastMetrics = cgm.Metrics{}
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
@@ -115,7 +114,7 @@ func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.MetricsDefaultStatus != "" {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
 			return nil, errors.Errorf("wmi.processor invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
@@ -177,13 +176,13 @@ func (c *Processor) Collect() error {
 
 	for _, item := range dst {
 		pfx := c.id
-		if strings.Contains(item.Name, "_Total") {
-			pfx += "`total"
+		if strings.Contains(item.Name, totalName) {
+			pfx += totalPrefix
 		} else {
 			if !c.reportAllCPUs {
 				continue
 			}
-			pfx += "`" + c.cleanName(item.Name)
+			pfx += metricNameSeparator + c.cleanName(item.Name)
 		}
 
 		c.addMetric(&metrics, pfx, "PercentC1Time", "L", item.PercentC1Time)

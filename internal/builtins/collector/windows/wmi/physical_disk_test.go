@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -55,37 +56,15 @@ func TestNewPhysicalDiskCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (report all cpus setting true)")
-	{
-		c, err := NewPhysicalDiskCollector(filepath.Join("testdata", "config_report_all_cpus_true_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*PhysicalDisk).reportAllCPUs {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (report all cpus setting false)")
-	{
-		c, err := NewPhysicalDiskCollector(filepath.Join("testdata", "config_report_all_cpus_false_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*PhysicalDisk).reportAllCPUs {
-			t.Fatal("expected false")
-		}
-	}
-
 	t.Log("config (include regex)")
 	{
 		c, err := NewPhysicalDiskCollector(filepath.Join("testdata", "config_include_regex_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := `^foo`
-		if c.(*PhysicalDisk).metricNameRegex.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*PhysicalDisk).metricNameRegex.String())
+		expect := fmt.Sprintf(regexPat, `^foo`)
+		if c.(*PhysicalDisk).include.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*PhysicalDisk).include.String())
 		}
 	}
 
@@ -103,9 +82,9 @@ func TestNewPhysicalDiskCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := `^foo`
-		if c.(*PhysicalDisk).metricNameRegex.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*PhysicalDisk).metricNameRegex.String())
+		expect := fmt.Sprintf(regexPat, `^foo`)
+		if c.(*PhysicalDisk).exclude.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*PhysicalDisk).exclude.String())
 		}
 	}
 
@@ -267,7 +246,7 @@ func TestPhysicalDiskFlush(t *testing.T) {
 func TestPhysicalDiskCollect(t *testing.T) {
 	t.Log("Testing Collect")
 
-	zerolog.SetGlobalLevel(zerolog.Disabled)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 	c, err := NewPhysicalDiskCollector("")
 	if err != nil {

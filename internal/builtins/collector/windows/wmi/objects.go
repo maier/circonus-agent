@@ -25,7 +25,6 @@ import (
 type Win32_PerfFormattedData_PerfOS_Objects struct {
 	Events     uint32
 	Mutexes    uint32
-	Name       string
 	Processes  uint32
 	Sections   uint32
 	Semaphores uint32
@@ -52,7 +51,6 @@ type objectsOptions struct {
 func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Objects{}
 	c.id = "objects"
-	c.lastMetrics = cgm.Metrics{}
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
@@ -92,7 +90,7 @@ func NewObjectsCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.MetricsDefaultStatus != "" {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
 			return nil, errors.Errorf("wmi.objects invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
@@ -154,15 +152,9 @@ func (c *Objects) Collect() error {
 
 	for _, item := range dst {
 		pfx := c.id
-		if item.Name != "" {
-			pfx += "`" + c.cleanName(item.Name)
-		}
-		d := structs.Map(item) // there is only one objects output
+		d := structs.Map(item) // there is only one 'objects' output
 
 		for name, val := range d {
-			if name == "Name" {
-				continue
-			}
 			c.addMetric(&metrics, pfx, name, "L", val)
 		}
 	}

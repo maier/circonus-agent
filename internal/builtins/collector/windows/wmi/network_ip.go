@@ -13,8 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -39,7 +41,6 @@ type Win32_PerfRawData_Tcpip_IPv4 struct {
 	FragmentsCreatedPersec           uint32
 	FragmentsReassembledPersec       uint32
 	FragmentsReceivedPersec          uint32
-	Name                             string
 }
 
 // Win32_PerfRawData_Tcpip_IPv6 defines the metrics to collect
@@ -61,7 +62,6 @@ type Win32_PerfRawData_Tcpip_IPv6 struct {
 	FragmentsCreatedPersec           uint32
 	FragmentsReassembledPersec       uint32
 	FragmentsReceivedPersec          uint32
-	Name                             string
 }
 
 // NetIP metrics from the Windows Management Interface (wmi)
@@ -88,7 +88,6 @@ type NetIPOptions struct {
 func NewNetIPCollector(cfgBaseName string) (collector.Collector, error) {
 	c := NetIP{}
 	c.id = "net_ip"
-	c.lastMetrics = cgm.Metrics{}
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
@@ -147,7 +146,7 @@ func NewNetIPCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.MetricsDefaultStatus != "" {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
 			return nil, errors.Errorf("wmi.net_ip invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
@@ -209,14 +208,11 @@ func (c *NetIP) Collect() error {
 		}
 
 		for _, item := range dst {
-			pfx := c.id + "`v4"
-			if item.Name != "" {
-				pfx += "`" + c.cleanName(item.Name)
-			}
+			pfx := c.id + metricNameSeparator + "v4"
 			d := structs.Map(item) // there is only one NetIP output
 
 			for name, val := range d {
-				if name == "Name" {
+				if name == nameFieldName {
 					continue
 				}
 				c.addMetric(&metrics, pfx, name, "L", val)
@@ -234,14 +230,11 @@ func (c *NetIP) Collect() error {
 		}
 
 		for _, item := range dst {
-			pfx := c.id + "`v6"
-			if item.Name != "" {
-				pfx += "`" + c.cleanName(item.Name)
-			}
+			pfx := c.id + metricNameSeparator + "v6"
 			d := structs.Map(item) // there is only one NetIP output
 
 			for name, val := range d {
-				if name == "Name" {
+				if name == nameFieldName {
 					continue
 				}
 				c.addMetric(&metrics, pfx, name, "L", val)

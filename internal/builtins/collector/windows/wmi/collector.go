@@ -32,6 +32,9 @@ func (c *wmicommon) Collect() error {
 func (c *wmicommon) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
+	if c.lastMetrics == nil {
+		c.lastMetrics = cgm.Metrics{}
+	}
 	return c.lastMetrics
 }
 
@@ -65,7 +68,7 @@ func (c *wmicommon) addMetric(metrics *cgm.Metrics, prefix string, mname, mtype 
 	mname = c.cleanName(mname)
 	active, found := c.metricStatus[mname]
 
-	metricName = ""
+	metricName := ""
 	if prefix != "" {
 		metricName = prefix + "`" + mname
 	} else {

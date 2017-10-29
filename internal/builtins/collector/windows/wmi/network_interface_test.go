@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -55,37 +56,15 @@ func TestNewNetworkInterfaceCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (report all cpus setting true)")
-	{
-		c, err := NewNetworkInterfaceCollector(filepath.Join("testdata", "config_report_all_cpus_true_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*NetworkInterface).reportAllCPUs {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (report all cpus setting false)")
-	{
-		c, err := NewNetworkInterfaceCollector(filepath.Join("testdata", "config_report_all_cpus_false_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*NetworkInterface).reportAllCPUs {
-			t.Fatal("expected false")
-		}
-	}
-
 	t.Log("config (include regex)")
 	{
 		c, err := NewNetworkInterfaceCollector(filepath.Join("testdata", "config_include_regex_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := `^foo`
-		if c.(*NetworkInterface).metricNameRegex.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*NetworkInterface).metricNameRegex.String())
+		expect := fmt.Sprintf(regexPat, `^foo`)
+		if c.(*NetworkInterface).include.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*NetworkInterface).include.String())
 		}
 	}
 
@@ -103,9 +82,9 @@ func TestNewNetworkInterfaceCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := `^foo`
-		if c.(*NetworkInterface).metricNameRegex.String() != expect {
-			t.Fatalf("expected (%s) got (%s)", expect, c.(*NetworkInterface).metricNameRegex.String())
+		expect := fmt.Sprintf(regexPat, `^foo`)
+		if c.(*NetworkInterface).exclude.String() != expect {
+			t.Fatalf("expected (%s) got (%s)", expect, c.(*NetworkInterface).exclude.String())
 		}
 	}
 

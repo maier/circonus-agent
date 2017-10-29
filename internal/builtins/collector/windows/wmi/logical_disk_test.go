@@ -8,6 +8,7 @@
 package wmi
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -55,36 +56,14 @@ func TestNewLogicalDiskCollector(t *testing.T) {
 		}
 	}
 
-	t.Log("config (report all cpus setting true)")
-	{
-		c, err := NewLogicalDiskCollector(filepath.Join("testdata", "config_report_all_cpus_true_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if !c.(*LogicalDisk).reportAllCPUs {
-			t.Fatal("expected true")
-		}
-	}
-
-	t.Log("config (report all cpus setting false)")
-	{
-		c, err := NewLogicalDiskCollector(filepath.Join("testdata", "config_report_all_cpus_false_setting"))
-		if err != nil {
-			t.Fatalf("expected NO error, got (%s)", err)
-		}
-		if c.(*LogicalDisk).reportAllCPUs {
-			t.Fatal("expected false")
-		}
-	}
-
 	t.Log("config (include regex)")
 	{
 		c, err := NewLogicalDiskCollector(filepath.Join("testdata", "config_include_regex_valid_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := `^foo`
-		if c.(*LogicalDisk).metricNameRegex.String() != expect {
+		expect := fmt.Sprintf(regexPat, `^foo`)
+		if c.(*LogicalDisk).include.String() != expect {
 			t.Fatalf("expected (%s) got (%s)", expect, c.(*LogicalDisk).metricNameRegex.String())
 		}
 	}
@@ -103,8 +82,8 @@ func TestNewLogicalDiskCollector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
-		expect := `^foo`
-		if c.(*LogicalDisk).metricNameRegex.String() != expect {
+		expect := fmt.Sprintf(regexPat, `^foo`)
+		if c.(*LogicalDisk).exclude.String() != expect {
 			t.Fatalf("expected (%s) got (%s)", expect, c.(*LogicalDisk).metricNameRegex.String())
 		}
 	}

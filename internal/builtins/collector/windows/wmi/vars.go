@@ -6,6 +6,7 @@
 package wmi
 
 import (
+	"fmt"
 	"regexp"
 	"sync"
 	"time"
@@ -25,14 +26,25 @@ type wmicommon struct {
 	logger              zerolog.Logger  // collector logging instance
 	metricDefaultActive bool            // OPT default status for metrics NOT explicitly in metricStatus, may be overriden in config file
 	metricNameChar      string          // OPT character(s) used as replacement for metricNameRegex, may be overriden in config
-	metricNameRegex     string          // OPT regex for cleaning names, may be overriden in config
+	metricNameRegex     *regexp.Regexp  // OPT regex for cleaning names, may be overriden in config
 	metricStatus        map[string]bool // OPT list of metrics and whether they should be collected or not, may be overriden in config file
 	running             bool            // is collector currently running
 	runTTL              time.Duration   // OPT ttl for collections, may be overriden in config file (default is for every request)
 	sync.Mutex
 }
 
+const (
+	defaultMetricChar   = `_`
+	metricNameSeparator = "`"
+	metricStatusEnabled = "enabled"
+	nameFieldName       = "Name"
+	totalName           = "_Total"
+	totalPrefix         = metricNameSeparator + "total"
+	regexPat            = "^(?:%s)$"
+)
+
 var (
+	defaultIncludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
+	defaultExcludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
 	defaultMetricNameRegex = regexp.MustCompile(`[^a-zA-Z0-9.-_:` + "`]")
-	defaultMetricChar      = `_`
 )

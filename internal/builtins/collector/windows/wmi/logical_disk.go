@@ -8,12 +8,15 @@
 package wmi
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/StackExchange/wmi"
 	"github.com/circonus-labs/circonus-agent/internal/builtins/collector"
 	"github.com/circonus-labs/circonus-agent/internal/config"
+	cgm "github.com/circonus-labs/circonus-gometrics"
 	"github.com/fatih/structs"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -71,15 +74,14 @@ type logicalDiskOptions struct {
 func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c := LogicalDisk{}
 	c.id = "logical_disk"
-	c.lastMetrics = cgm.Metrics{}
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
 	c.metricStatus = map[string]bool{}
 
-	c.include = regexp.MustCompile(`.+`)
-	c.exclude = regexp.MustCompile(``)
+	c.include = defaultIncludeRegex
+	c.exclude = defaultExcludeRegex
 
 	if cfgBaseName == "" {
 		return &c, nil
@@ -99,7 +101,7 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 
 	// include regex
 	if cfg.IncludeRegex != "" {
-		rx, err := regexp.CompilePOSIX(cfg.IncludeRegex)
+		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.IncludeRegex))
 		if err != nil {
 			return nil, errors.Wrap(err, "wmi.logical_disk compiling include regex")
 		}
@@ -108,7 +110,7 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 
 	// exclude regex
 	if cfg.ExcludeRegex != "" {
-		rx, err := regexp.CompilePOSIX(cfg.ExcludeRegex)
+		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.ExcludeRegex))
 		if err != nil {
 			return nil, errors.Wrap(err, "wmi.logical_disk compiling exclude regex")
 		}
@@ -132,7 +134,7 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.MetricsDefaultStatus != "" {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
 			return nil, errors.Errorf("wmi.logical_disk invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
@@ -193,7 +195,6 @@ func (c *LogicalDisk) Collect() error {
 	}
 
 	for _, item := range dst {
-
 		// apply include/exclude to CLEAN item name
 		itemName := c.cleanName(item.Name)
 		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
@@ -202,15 +203,15 @@ func (c *LogicalDisk) Collect() error {
 
 		// adjust prefix, add item name
 		pfx := c.id
-		if strings.Contains(item.Name, "_Total") { // use the unclean name
-			pfx += "`total"
+		if strings.Contains(item.Name, totalName) { // use the unclean name
+			pfx += totalPrefix
 		} else {
-			pfx += "`" + itemName
+			pfx += metricNameSeparator + itemName
 		}
 
 		d := structs.Map(item)
 		for name, val := range d {
-			if name == "Name" {
+			if name == nameFieldName {
 				continue
 			}
 			c.addMetric(&metrics, pfx, name, "L", val)

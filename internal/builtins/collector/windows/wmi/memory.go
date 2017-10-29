@@ -31,7 +31,6 @@ type Win32_PerfFormattedData_PerfOS_Memory struct {
 	FreeAndZeroPageListBytes        uint64
 	FreeSystemPageTableEntries      uint64
 	ModifiedPageListBytes           uint64
-	Name                            string
 	PageFaultsPersec                uint64
 	PageReadsPersec                 uint64
 	PagesInputPersec                uint64
@@ -76,7 +75,6 @@ type memoryOptions struct {
 func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 	c := Memory{}
 	c.id = "memory"
-	c.lastMetrics = cgm.Metrics{}
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
@@ -116,7 +114,7 @@ func NewMemoryCollector(cfgBaseName string) (collector.Collector, error) {
 
 	if cfg.MetricsDefaultStatus != "" {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
 			return nil, errors.Errorf("wmi.memory invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
@@ -177,14 +175,10 @@ func (c *Memory) Collect() error {
 	}
 
 	for _, item := range dst {
-		pfx := c.id
-		if item.Name != "" {
-			pfx += "`" + c.cleanName(item.Name)
-		}
 		d := structs.Map(item) // there is only one memory output
-
+		pfx := c.id
 		for name, val := range d {
-			if name == "Name" {
+			if name == nameFieldName {
 				continue
 			}
 			c.addMetric(&metrics, pfx, name, "L", val)
