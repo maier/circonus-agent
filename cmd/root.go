@@ -9,6 +9,7 @@ import (
 	"fmt"
 	stdlog "log"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/circonus-labs/circonus-agent/internal/agent"
@@ -583,7 +584,7 @@ func init() {
 			key         = config.KeyLogPretty
 			longOpt     = "log-pretty"
 			envVar      = release.ENVPREFIX + "_LOG_PRETTY"
-			description = "Output formatted/colored log lines"
+			description = "Output formatted/colored log lines [ignored on windows]"
 		)
 
 		RootCmd.Flags().Bool(longOpt, defaults.LogPretty, desc(description, envVar))
@@ -626,7 +627,11 @@ func initLogging(cmd *cobra.Command, args []string) error {
 	// Enable formatted output
 	//
 	if viper.GetBool(config.KeyLogPretty) {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+		if runtime.GOOS != "windows" {
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+		} else {
+			log.Warn().Msg("log-pretty not applicable on this platform")
+		}
 	}
 
 	//
