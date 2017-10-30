@@ -176,7 +176,7 @@ func init() {
 	case "windows":
 		Collectors = []string{
 			"cache",
-			"logical_disk",
+			"disk",
 			"memory",
 			"interface",
 			"ip",
@@ -184,7 +184,6 @@ func init() {
 			"udp",
 			"objects",
 			"paging_file",
-			"physical_disk",
 			"processes",
 			"processor",
 		}
