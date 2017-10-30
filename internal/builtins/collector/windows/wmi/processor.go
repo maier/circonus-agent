@@ -80,10 +80,10 @@ func NewProcessorCollector(cfgBaseName string) (collector.Collector, error) {
 	var cfg processorOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
-		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
 		}
+		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		return nil, errors.Wrap(err, "wmi.processor config")
 	}
 
