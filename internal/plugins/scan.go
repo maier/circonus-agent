@@ -165,7 +165,7 @@ func (p *Plugins) scanPluginDirectory(b *builtins.Builtins) error {
 			continue
 		}
 
-		if b.IsBuiltin(fileBase) {
+		if b != nil && b.IsBuiltin(fileBase) {
 			p.logger.Warn().Str("id", fileBase).Msg("Builtin collector already enabled, skipping plugin")
 			continue
 		}
