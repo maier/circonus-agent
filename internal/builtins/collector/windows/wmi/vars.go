@@ -34,17 +34,17 @@ type wmicommon struct {
 }
 
 const (
-	defaultMetricChar   = `_`
-	metricNameSeparator = "`"
-	metricStatusEnabled = "enabled"
-	nameFieldName       = "Name"
-	totalName           = "_Total"
-	totalPrefix         = metricNameSeparator + "total"
-	regexPat            = "^(?:%s)$"
+	defaultMetricChar   = "_"                           // character used to replace invalid characters in metric name
+	metricNameSeparator = "`"                           // character used to separate parts of metric names
+	metricStatusEnabled = "enabled"                     // setting string indicating metrics should be made 'active'
+	nameFieldName       = "Name"                        // name of the 'name' field in wmi results
+	regexPat            = `^(?:%s)$`                    // fmt pattern used compile include/exclude regular expressions
+	totalName           = "_Total"                      // value of the Name field for 'totals'
+	totalPrefix         = metricNameSeparator + "total" // metric name prefix to use for 'totals'
 )
 
 var (
-	defaultIncludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ".+"))
-	defaultExcludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ""))
-	defaultMetricNameRegex = regexp.MustCompile(`[^a-zA-Z0-9.-_:` + "`]")
+	defaultExcludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, ``))
+	defaultIncludeRegex    = regexp.MustCompile(fmt.Sprintf(regexPat, `.+`))
+	defaultMetricNameRegex = regexp.MustCompile(`[^a-zA-Z0-9.-_:` + metricNameSeparator + `]`)
 )
