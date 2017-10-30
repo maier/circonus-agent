@@ -95,6 +95,10 @@ func (b *Builtins) IsBuiltin(id string) bool {
 	b.Lock()
 	defer b.Unlock()
 
+	if len(b.collectors) == 0 {
+		return false
+	}
+
 	_, ok := b.collectors[id]
 
 	return ok
