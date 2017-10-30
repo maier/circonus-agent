@@ -29,8 +29,8 @@ type CPU struct {
 	reportAllCPUs bool    // may be overriden in config file
 }
 
-// options defines what elements can be overriden in a config file
-type options struct {
+// cpuOptions defines what elements can be overriden in a config file
+type cpuOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	File                 string   `json:"proc_file" toml:"proc_file" yaml:"proc_file"`
 	ClockHZ              string   `json:"clock_hz" toml:"clock_hz" yaml:"clock_hz"`
@@ -43,44 +43,38 @@ type options struct {
 
 // NewCPUCollector creates new procfs cpu collector
 func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
-	id := "cpu"
-	cpu := CPU{}
+	c := CPU{}
+	c.id = "cpu"
+	c.file = "/proc/stat"
+	c.logger = log.With().Str("pkg", "builtins.procfs.c").Logger()
+	c.metricStatus = map[string]bool{}
+	c.metricDefaultActive = true
 
-	cpu.id = id
-	cpu.file = "/proc/stat"
-	cpu.logger = log.With().Str("pkg", "builtins.procfs.cpu").Logger()
-	cpu.numCPU = float64(runtime.NumCPU())
-	cpu.metricStatus = map[string]bool{}
-	cpu.metricDefaultActive = true
-	cpu.clockHZ = 100
-	cpu.reportAllCPUs = true
-	cpu.lastMetrics = cgm.Metrics{}
+	c.numCPU = float64(runtime.NumCPU())
+	c.clockHZ = 100
+	c.reportAllCPUs = true
 
 	if cfgBaseName == "" {
-		if _, err := os.Stat(cpu.file); os.IsNotExist(err) {
+		if _, err := os.Stat(c.file); os.IsNotExist(err) {
 			return nil, errors.Wrap(err, "procfs")
 		}
-		return &cpu, nil
+		return &c, nil
 	}
 
-	var cfg options
+	var cfg cpuOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
-		cpu.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
+		c.logger.Warn().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
-			return &cpu, nil
+			return &c, nil
 		}
 		return nil, errors.Wrap(err, "procfs.cpu config")
 	}
 
-	cpu.logger.Debug().Interface("config", cfg).Msg("loaded config")
-
-	if cfg.ID != "" {
-		cpu.id = cfg.ID
-	}
+	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
 
 	if cfg.File != "" {
-		cpu.file = cfg.File
+		c.file = cfg.File
 	}
 
 	if cfg.ClockHZ != "" {
@@ -88,7 +82,7 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.cpu parsing clock_hz")
 		}
-		cpu.clockHZ = v
+		c.clockHZ = v
 	}
 
 	if cfg.AllCPU != "" {
@@ -96,23 +90,27 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "procfs.cpu parsing report_all_cpus")
 		}
-		cpu.reportAllCPUs = rpt
+		c.reportAllCPUs = rpt
+	}
+
+	if cfg.ID != "" {
+		c.id = cfg.ID
 	}
 
 	if len(cfg.MetricsEnabled) > 0 {
 		for _, name := range cfg.MetricsEnabled {
-			cpu.metricStatus[name] = true
+			c.metricStatus[name] = true
 		}
 	}
 	if len(cfg.MetricsDisabled) > 0 {
 		for _, name := range cfg.MetricsDisabled {
-			cpu.metricStatus[name] = false
+			c.metricStatus[name] = false
 		}
 	}
 
 	if cfg.MetricsDefaultStatus != "" {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
-			cpu.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == "enabled"
+			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
 			return nil, errors.Errorf("procfs.cpu invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
@@ -121,23 +119,16 @@ func NewCPUCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "procfs.cpu parsing run_ttl")
+			return nil, errors.Wrap(err, "wmi.processor parsing run_ttl")
 		}
-		cpu.runTTL = dur
+		c.runTTL = dur
 	}
 
-	if _, err := os.Stat(cpu.file); os.IsNotExist(err) {
+	if _, err := os.Stat(c.file); os.IsNotExist(err) {
 		return nil, errors.Wrap(err, "procfs")
 	}
 
-	return &cpu, nil
-}
-
-// Flush returns the last metrics
-func (c *CPU) Flush() cgm.Metrics {
-	c.Lock()
-	defer c.Unlock()
-	return c.lastMetrics
+	return &c, nil
 }
 
 // Collect metrics from the procfs resource
