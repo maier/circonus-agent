@@ -85,6 +85,62 @@ func New() ([]collector.Collector, error) {
 			}
 			collectors = append(collectors, c)
 
+		case "interface":
+			c, err := NewNetworkInterfaceCollector(path.Join(defaults.EtcPath, "interface"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "ip":
+			c, err := NewNetworkIPCollector(path.Join(defaults.EtcPath, "ip"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "tcp":
+			c, err := NewNetworkTCPCollector(path.Join(defaults.EtcPath, "tcp"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "udp":
+			c, err := NewNetworkUDPCollector(path.Join(defaults.EtcPath, "udp"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "objects":
+			c, err := NewObjectsCollector(path.Join(defaults.EtcPath, "objects"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "paging_file":
+			c, err := NewPagingFileCollector(path.Join(defaults.EtcPath, "paging_file"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "processes":
+			c, err := NewProcessesCollector(path.Join(defaults.EtcPath, "processes"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
 		case "processor":
 			c, err := NewProcessorCollector(path.Join(defaults.EtcPath, "processor"))
 			if err != nil {
