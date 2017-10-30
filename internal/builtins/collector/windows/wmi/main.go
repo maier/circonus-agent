@@ -34,16 +34,16 @@ func initialize() error {
 // New creates new WMI collector
 func New() ([]collector.Collector, error) {
 	none := []collector.Collector{}
+	l := log.With().Str("pkg", "builtins.wmi").Logger()
 
 	if runtime.GOOS != "windows" {
+		l.Warn().Msg("not windows, skipping wmi")
 		return none, nil
 	}
 
 	if err := initialize(); err != nil {
 		return none, err
 	}
-
-	l := log.With().Str("pkg", "builtins.wmi").Logger()
 
 	enbledCollectors := viper.GetStringSlice(config.KeyCollectors)
 	if len(enbledCollectors) == 0 {
@@ -58,7 +58,7 @@ func New() ([]collector.Collector, error) {
 			Msg("initializing builtin collector")
 	}
 
-	collectors := make([]collector.Collector, len(enbledCollectors))
+	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	for _, name := range enbledCollectors {
 		switch name {
 		case "processor":
