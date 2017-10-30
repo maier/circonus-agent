@@ -68,10 +68,10 @@ func NewPagingFileCollector(cfgBaseName string) (collector.Collector, error) {
 	var cfg pagingFileOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
-		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
 		}
+		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		return nil, errors.Wrap(err, "wmi.paging_file config")
 	}
 

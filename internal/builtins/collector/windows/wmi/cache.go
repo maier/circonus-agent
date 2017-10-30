@@ -87,10 +87,10 @@ func NewCacheCollector(cfgBaseName string) (collector.Collector, error) {
 	var cfg cacheOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
-		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		if strings.Contains(err.Error(), "no config found matching") {
 			return &c, nil
 		}
+		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
 		return nil, errors.Wrap(err, "wmi.cache config")
 	}
 
