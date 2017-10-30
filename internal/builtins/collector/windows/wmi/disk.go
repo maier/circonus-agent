@@ -10,6 +10,7 @@ package wmi
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,16 +51,46 @@ type Win32_PerfFormattedData_PerfDisk_LogicalDisk struct {
 	SplitIOPerSec           uint32
 }
 
+// Win32_PerfFormattedData_PerfDisk_PhysicalDisk defines the metrics to collect
+type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct {
+	AvgDiskBytesPerRead     uint64
+	AvgDiskBytesPerTransfer uint64
+	AvgDiskBytesPerWrite    uint64
+	AvgDiskQueueLength      uint64
+	AvgDiskReadQueueLength  uint64
+	AvgDisksecPerRead       uint32
+	AvgDisksecPerTransfer   uint32
+	AvgDisksecPerWrite      uint32
+	AvgDiskWriteQueueLength uint64
+	CurrentDiskQueueLength  uint32
+	DiskBytesPersec         uint64
+	DiskReadBytesPersec     uint64
+	DiskReadsPersec         uint32
+	DiskTransfersPersec     uint32
+	DiskWriteBytesPersec    uint64
+	DiskWritesPersec        uint64
+	Name                    string
+	PercentDiskReadTime     uint64
+	PercentDiskTime         uint64
+	PercentDiskWriteTime    uint64
+	PercentIdleTime         uint64
+	SplitIOPerSec           uint32
+}
+
 // LogicalDisk metrics from the Windows Management Interface (wmi)
 type LogicalDisk struct {
 	wmicommon
-	include *regexp.Regexp
-	exclude *regexp.Regexp
+	logical  bool
+	physical bool
+	include  *regexp.Regexp
+	exclude  *regexp.Regexp
 }
 
 // logicalDiskOptions defines what elements can be overriden in a config file
 type logicalDiskOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
+	IncludeLogical       string   `json:"disks" toml:"disks" yaml:"disks"`
+	IncludePhysical      string   `json:"physical_disks" toml:"physical_disks" yaml:"physical_disks"`
 	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
 	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
 	MetricsEnabled       []string `json:"metrics_enabled" toml:"metrics_enabled" yaml:"metrics_enabled"`
@@ -73,13 +104,15 @@ type logicalDiskOptions struct {
 // NewLogicalDiskCollector creates new wmi collector
 func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	c := LogicalDisk{}
-	c.id = "logical_disk"
+	c.id = "disk"
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
 	c.metricNameChar = defaultMetricChar
 	c.metricNameRegex = defaultMetricNameRegex
 	c.metricStatus = map[string]bool{}
 
+	c.logical = true
+	c.physical = true
 	c.include = defaultIncludeRegex
 	c.exclude = defaultExcludeRegex
 
@@ -94,16 +127,32 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 			return &c, nil
 		}
 		c.logger.Debug().Err(err).Str("file", cfgBaseName).Msg("loading config file")
-		return nil, errors.Wrap(err, "wmi.logical_disk config")
+		return nil, errors.Wrap(err, "wmi.disk config")
 	}
 
 	c.logger.Debug().Interface("config", cfg).Msg("loaded config")
+
+	if cfg.IncludeLogical != "" {
+		logical, err := strconv.ParseBool(cfg.IncludeLogical)
+		if err != nil {
+			return nil, errors.Wrap(err, "wmi.disk parsing disks")
+		}
+		c.logical = logical
+	}
+
+	if cfg.IncludePhysical != "" {
+		physical, err := strconv.ParseBool(cfg.IncludePhysical)
+		if err != nil {
+			return nil, errors.Wrap(err, "wmi.disk parsing physical_disks")
+		}
+		c.physical = physical
+	}
 
 	// include regex
 	if cfg.IncludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.IncludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.logical_disk compiling include regex")
+			return nil, errors.Wrap(err, "wmi.disk compiling include regex")
 		}
 		c.include = rx
 	}
@@ -112,7 +161,7 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.ExcludeRegex != "" {
 		rx, err := regexp.Compile(fmt.Sprintf(regexPat, cfg.ExcludeRegex))
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.logical_disk compiling exclude regex")
+			return nil, errors.Wrap(err, "wmi.disk compiling exclude regex")
 		}
 		c.exclude = rx
 	}
@@ -136,14 +185,14 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		if ok, _ := regexp.MatchString(`^(enabled|disabled)$`, strings.ToLower(cfg.MetricsDefaultStatus)); ok {
 			c.metricDefaultActive = strings.ToLower(cfg.MetricsDefaultStatus) == metricStatusEnabled
 		} else {
-			return nil, errors.Errorf("wmi.logical_disk invalid metric default status (%s)", cfg.MetricsDefaultStatus)
+			return nil, errors.Errorf("wmi.disk invalid metric default status (%s)", cfg.MetricsDefaultStatus)
 		}
 	}
 
 	if cfg.MetricNameRegex != "" {
 		rx, err := regexp.Compile(cfg.MetricNameRegex)
 		if err != nil {
-			return nil, errors.Wrapf(err, "wmi.logical_disk compile metric_name_regex")
+			return nil, errors.Wrapf(err, "wmi.disk compile metric_name_regex")
 		}
 		c.metricNameRegex = rx
 	}
@@ -155,7 +204,7 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 	if cfg.RunTTL != "" {
 		dur, err := time.ParseDuration(cfg.RunTTL)
 		if err != nil {
-			return nil, errors.Wrap(err, "wmi.logical_disk parsing run_ttl")
+			return nil, errors.Wrap(err, "wmi.disk parsing run_ttl")
 		}
 		c.runTTL = dur
 	}
@@ -186,35 +235,71 @@ func (c *LogicalDisk) Collect() error {
 	c.lastStart = time.Now()
 	c.Unlock()
 
-	var dst []Win32_PerfFormattedData_PerfDisk_LogicalDisk
-	qry := wmi.CreateQuery(dst, "")
-	if err := wmi.Query(qry, &dst); err != nil {
-		c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
-		c.setStatus(metrics, err)
-		return errors.Wrap(err, "wmi.logical_disk")
-	}
-
-	for _, item := range dst {
-		// apply include/exclude to CLEAN item name
-		itemName := c.cleanName(item.Name)
-		if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
-			continue
+	if c.logical {
+		var dst []Win32_PerfFormattedData_PerfDisk_LogicalDisk
+		qry := wmi.CreateQuery(dst, "")
+		if err := wmi.Query(qry, &dst); err != nil {
+			c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
+			c.setStatus(metrics, err)
+			return errors.Wrap(err, "wmi.disk")
 		}
 
-		// adjust prefix, add item name
-		pfx := c.id
-		if strings.Contains(item.Name, totalName) { // use the unclean name
-			pfx += totalPrefix
-		} else {
-			pfx += metricNameSeparator + itemName
-		}
-
-		d := structs.Map(item)
-		for name, val := range d {
-			if name == nameFieldName {
+		for _, item := range dst {
+			// apply include/exclude to CLEAN item name
+			itemName := c.cleanName(item.Name)
+			if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
 				continue
 			}
-			c.addMetric(&metrics, pfx, name, "L", val)
+
+			// adjust prefix, add item name
+			pfx := c.id + metricNameSeparator + "logical"
+			if strings.Contains(item.Name, totalName) { // use the unclean name
+				pfx += totalPrefix
+			} else {
+				pfx += metricNameSeparator + itemName
+			}
+
+			d := structs.Map(item)
+			for name, val := range d {
+				if name == nameFieldName {
+					continue
+				}
+				c.addMetric(&metrics, pfx, name, "L", val)
+			}
+		}
+	}
+
+	if c.physical {
+		var dst []Win32_PerfFormattedData_PerfDisk_PhysicalDisk
+		qry := wmi.CreateQuery(dst, "")
+		if err := wmi.Query(qry, &dst); err != nil {
+			c.logger.Error().Err(err).Str("query", qry).Msg("wmi error")
+			c.setStatus(metrics, err)
+			return errors.Wrap(err, "wmi.disk")
+		}
+
+		for _, item := range dst {
+			// apply include/exclude to CLEAN item name
+			itemName := c.cleanName(item.Name)
+			if c.exclude.MatchString(itemName) || !c.include.MatchString(itemName) {
+				continue
+			}
+
+			// adjust prefix, add item name
+			pfx := c.id + metricNameSeparator + "physical"
+			if strings.Contains(item.Name, totalName) { // use the unclean name
+				pfx += totalPrefix
+			} else {
+				pfx += metricNameSeparator + itemName
+			}
+
+			d := structs.Map(item)
+			for name, val := range d {
+				if name == nameFieldName {
+					continue
+				}
+				c.addMetric(&metrics, pfx, name, "L", val)
+			}
 		}
 	}
 

@@ -175,8 +175,18 @@ func init() {
 		}
 	case "windows":
 		Collectors = []string{
-			"processor",
+			"cache",
+			"logical_disk",
 			"memory",
+			"interface",
+			"ip",
+			"tcp",
+			"udp",
+			"objects",
+			"paging_file",
+			"physical_disk",
+			"processes",
+			"processor",
 		}
 	}
 }

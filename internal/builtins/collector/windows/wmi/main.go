@@ -61,8 +61,16 @@ func New() ([]collector.Collector, error) {
 	collectors := make([]collector.Collector, 0, len(enbledCollectors))
 	for _, name := range enbledCollectors {
 		switch name {
-		case "processor":
-			c, err := NewProcessorCollector(path.Join(defaults.EtcPath, "processor"))
+		case "cache":
+			c, err := NewCacheCollector(path.Join(defaults.EtcPath, "cache"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "disk":
+			c, err := NewDiskCollector(path.Join(defaults.EtcPath, "disk"))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -71,6 +79,14 @@ func New() ([]collector.Collector, error) {
 
 		case "memory":
 			c, err := NewMemoryCollector(path.Join(defaults.EtcPath, "memory"))
+			if err != nil {
+				logError(name, err)
+				continue
+			}
+			collectors = append(collectors, c)
+
+		case "processor":
+			c, err := NewProcessorCollector(path.Join(defaults.EtcPath, "processor"))
 			if err != nil {
 				logError(name, err)
 				continue
