@@ -77,8 +77,8 @@ type Win32_PerfFormattedData_PerfDisk_PhysicalDisk struct {
 	SplitIOPerSec           uint32
 }
 
-// LogicalDisk metrics from the Windows Management Interface (wmi)
-type LogicalDisk struct {
+// Disk metrics from the Windows Management Interface (wmi)
+type Disk struct {
 	wmicommon
 	logical  bool
 	physical bool
@@ -86,10 +86,10 @@ type LogicalDisk struct {
 	exclude  *regexp.Regexp
 }
 
-// logicalDiskOptions defines what elements can be overriden in a config file
-type logicalDiskOptions struct {
+// diskOptions defines what elements can be overriden in a config file
+type diskOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
-	IncludeLogical       string   `json:"disks" toml:"disks" yaml:"disks"`
+	IncludeLogical       string   `json:"logical_disks" toml:"logical_disks" yaml:"logical_disks"`
 	IncludePhysical      string   `json:"physical_disks" toml:"physical_disks" yaml:"physical_disks"`
 	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
 	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
@@ -101,9 +101,9 @@ type logicalDiskOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewLogicalDiskCollector creates new wmi collector
-func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
-	c := LogicalDisk{}
+// NewDiskCollector creates new wmi collector
+func NewDiskCollector(cfgBaseName string) (collector.Collector, error) {
+	c := Disk{}
 	c.id = "disk"
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
@@ -120,7 +120,7 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 		return &c, nil
 	}
 
-	var cfg logicalDiskOptions
+	var cfg diskOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -213,7 +213,7 @@ func NewLogicalDiskCollector(cfgBaseName string) (collector.Collector, error) {
 }
 
 // Collect metrics from the wmi resource
-func (c *LogicalDisk) Collect() error {
+func (c *Disk) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

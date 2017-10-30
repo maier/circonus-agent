@@ -184,7 +184,7 @@ func init() {
 			"udp",
 			"objects",
 			"paging_file",
-			"processes",
+			// "processes", // generates a lot of metrics without filters, do not enable automatically
 			"processor",
 		}
 	}

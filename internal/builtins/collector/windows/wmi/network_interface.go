@@ -49,15 +49,15 @@ type Win32_PerfRawData_Tcpip_NetworkInterface struct {
 	TCPRSCExceptionsPersec          uint64
 }
 
-// NetworkInterface metrics from the Windows Management Interface (wmi)
-type NetworkInterface struct {
+// NetInterface metrics from the Windows Management Interface (wmi)
+type NetInterface struct {
 	wmicommon
 	include *regexp.Regexp
 	exclude *regexp.Regexp
 }
 
-// networkInterfaceOptions defines what elements can be overriden in a config file
-type networkInterfaceOptions struct {
+// netInterfaceOptions defines what elements can be overriden in a config file
+type netInterfaceOptions struct {
 	ID                   string   `json:"id" toml:"id" yaml:"id"`
 	IncludeRegex         string   `json:"include_regex" toml:"include_regex" yaml:"include_regex"`
 	ExcludeRegex         string   `json:"exclude_regex" toml:"exclude_regex" yaml:"exclude_regex"`
@@ -69,9 +69,9 @@ type networkInterfaceOptions struct {
 	RunTTL               string   `json:"run_ttl" toml:"run_ttl" yaml:"run_ttl"`
 }
 
-// NewNetworkInterfaceCollector creates new wmi collector
-func NewNetworkInterfaceCollector(cfgBaseName string) (collector.Collector, error) {
-	c := NetworkInterface{}
+// NewNetInterfaceCollector creates new wmi collector
+func NewNetInterfaceCollector(cfgBaseName string) (collector.Collector, error) {
+	c := NetInterface{}
 	c.id = "network_interface"
 	c.logger = log.With().Str("pkg", "builtins.wmi."+c.id).Logger()
 	c.metricDefaultActive = true
@@ -86,7 +86,7 @@ func NewNetworkInterfaceCollector(cfgBaseName string) (collector.Collector, erro
 		return &c, nil
 	}
 
-	var cfg networkInterfaceOptions
+	var cfg netInterfaceOptions
 	err := config.LoadConfigFile(cfgBaseName, &cfg)
 	if err != nil {
 		if strings.Contains(err.Error(), "no config found matching") {
@@ -163,7 +163,7 @@ func NewNetworkInterfaceCollector(cfgBaseName string) (collector.Collector, erro
 }
 
 // Collect metrics from the wmi resource
-func (c *NetworkInterface) Collect() error {
+func (c *NetInterface) Collect() error {
 	metrics := cgm.Metrics{}
 
 	c.Lock()

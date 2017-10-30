@@ -86,7 +86,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "interface":
-			c, err := NewNetworkInterfaceCollector(path.Join(defaults.EtcPath, "interface"))
+			c, err := NewNetInterfaceCollector(path.Join(defaults.EtcPath, "interface"))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -94,7 +94,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "ip":
-			c, err := NewNetworkIPCollector(path.Join(defaults.EtcPath, "ip"))
+			c, err := NewNetIPCollector(path.Join(defaults.EtcPath, "ip"))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -102,7 +102,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "tcp":
-			c, err := NewNetworkTCPCollector(path.Join(defaults.EtcPath, "tcp"))
+			c, err := NewNetTCPCollector(path.Join(defaults.EtcPath, "tcp"))
 			if err != nil {
 				logError(name, err)
 				continue
@@ -110,7 +110,7 @@ func New() ([]collector.Collector, error) {
 			collectors = append(collectors, c)
 
 		case "udp":
-			c, err := NewNetworkUDPCollector(path.Join(defaults.EtcPath, "udp"))
+			c, err := NewNetUDPCollector(path.Join(defaults.EtcPath, "udp"))
 			if err != nil {
 				logError(name, err)
 				continue

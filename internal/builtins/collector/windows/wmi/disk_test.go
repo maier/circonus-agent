@@ -58,7 +58,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (logical setting true)")
 	{
-		c, err := NewProcessorCollector(filepath.Join("testdata", "config_logical_true_setting"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_logical_true_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -69,7 +69,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (logical setting false)")
 	{
-		c, err := NewProcessorCollector(filepath.Join("testdata", "config_logical_false_setting"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_logical_false_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -80,7 +80,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (logical setting invalid)")
 	{
-		_, err := NewProcessorCollector(filepath.Join("testdata", "config_logical_invalid_setting"))
+		_, err := NewDiskCollector(filepath.Join("testdata", "config_logical_invalid_setting"))
 		if err == nil {
 			t.Fatal("expected error")
 		}
@@ -88,7 +88,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (physical setting true)")
 	{
-		c, err := NewProcessorCollector(filepath.Join("testdata", "config_physical_true_setting"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_physical_true_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -99,7 +99,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (physical setting false)")
 	{
-		c, err := NewProcessorCollector(filepath.Join("testdata", "config_physical_false_setting"))
+		c, err := NewDiskCollector(filepath.Join("testdata", "config_physical_false_setting"))
 		if err != nil {
 			t.Fatalf("expected NO error, got (%s)", err)
 		}
@@ -110,7 +110,7 @@ func TestNewDiskCollector(t *testing.T) {
 
 	t.Log("config (physical setting invalid)")
 	{
-		_, err := NewProcessorCollector(filepath.Join("testdata", "config_physical_invalid_setting"))
+		_, err := NewDiskCollector(filepath.Join("testdata", "config_physical_invalid_setting"))
 		if err == nil {
 			t.Fatal("expected error")
 		}
