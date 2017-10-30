@@ -176,15 +176,15 @@ func init() {
 	case "windows":
 		Collectors = []string{
 			"cache",
-			"disk",
+			"disk", // logical and physical
 			"memory",
 			"interface",
-			"ip",
-			"tcp",
-			"udp",
+			"ip",  // ipv4 and ipv6
+			"tcp", // ipv4 and ipv6
+			"udp", // ipv4 and ipv6
 			"objects",
 			"paging_file",
-			// "processes", // generates a lot of metrics without filters, do not enable automatically
+			// "processes", // generates a lot of metrics w/o filters, do not enable automatically
 			"processor",
 		}
 	}
