@@ -30,7 +30,10 @@ func (c *pfscommon) Collect() error {
 func (c *pfscommon) Flush() cgm.Metrics {
 	c.Lock()
 	defer c.Unlock()
-	return cgm.Metrics{}
+	if c.lastMetrics == nil {
+		c.lastMetrics = cgm.Metrics{}
+	}
+	return c.lastMetrics
 }
 
 // ID returns the id of the instance
