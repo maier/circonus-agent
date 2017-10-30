@@ -177,15 +177,15 @@ func init() {
 		Collectors = []string{
 			"cache",
 			"disk", // logical and physical
-			"memory",
 			"interface",
-			"ip",  // ipv4 and ipv6
-			"tcp", // ipv4 and ipv6
-			"udp", // ipv4 and ipv6
+			"ip", // ipv4 and ipv6
+			"memory",
 			"objects",
 			"paging_file",
-			// "processes", // generates a lot of metrics w/o filters, do not enable automatically
+			// "processes",
 			"processor",
+			"tcp", // ipv4 and ipv6
+			"udp", // ipv4 and ipv6
 		}
 	}
 }
