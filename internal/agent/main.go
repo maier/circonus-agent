@@ -44,7 +44,7 @@ func New() (*Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = a.plugins.Scan(); err != nil {
+	if err = a.plugins.Scan(a.builtins); err != nil {
 		return nil, err
 	}
 
