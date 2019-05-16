@@ -209,6 +209,17 @@ func (c *Check) CheckMeta() (*Meta, error) {
 	return nil, errors.New("check not initialized")
 }
 
+// CheckPeriod returns check bundle period (intetrval between when broker should make request)
+func (c *Check) CheckPeriod() (uint, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.bundle != nil {
+		return c.bundle.Period, nil
+	}
+	return 0, errors.New("check not initialized")
+}
+
 // RefreshCheckConfig re-loads the check bundle using the API and reconfigures reverse (if needed)
 func (c *Check) RefreshCheckConfig() error {
 	c.Lock()
