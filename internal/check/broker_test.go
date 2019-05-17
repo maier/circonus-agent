@@ -28,7 +28,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("cid (empty)")
 	{
 		c := Check{}
-		_, err := c.brokerTLSConfig("", rurl)
+		_, _, err := c.brokerTLSConfig("", rurl)
 
 		if err == nil {
 			t.Fatal("expected error")
@@ -41,7 +41,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("cid (invalid)")
 	{
 		c := Check{}
-		_, err := c.brokerTLSConfig("foo", rurl)
+		_, _, err := c.brokerTLSConfig("foo", rurl)
 
 		if err == nil {
 			t.Fatal("expected error")
@@ -54,7 +54,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("api error")
 	{
 		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("/broker/000", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/000", rurl)
 		viper.Reset()
 
 		if err == nil {
@@ -73,7 +73,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 		}
 
 		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("/broker/1234", badrurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", badrurl)
 		viper.Reset()
 
 		if err == nil {
@@ -88,7 +88,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	{
 		c := Check{client: genMockClient()}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/missingca.crt")
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
 		if err == nil {
@@ -103,7 +103,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	{
 		c := Check{client: genMockClient()}
 		viper.Set(config.KeyReverseBrokerCAFile, "testdata/ca.crt")
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
 		if err != nil {
@@ -114,7 +114,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("valid w/api cert (full cid)")
 	{
 		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("/broker/1234", rurl)
+		_, _, err := c.brokerTLSConfig("/broker/1234", rurl)
 		viper.Reset()
 
 		if err != nil {
@@ -125,7 +125,7 @@ func TestBrokerTLSConfig(t *testing.T) {
 	t.Log("valid w/api cert (# cid)")
 	{
 		c := Check{client: genMockClient()}
-		_, err := c.brokerTLSConfig("1234", rurl)
+		_, _, err := c.brokerTLSConfig("1234", rurl)
 		viper.Reset()
 
 		if err != nil {
