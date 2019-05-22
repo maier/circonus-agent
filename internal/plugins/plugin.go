@@ -55,6 +55,7 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	parseStart := time.Now()
 	metrics := cgm.Metrics{}
 	numDuplicates := 0
+	metricTypes := regexp.MustCompile("^[iIlLnOs]$")
 
 	// if first char of first line is '{' then assume output is json
 	if output[0][:1] == "{" {
@@ -69,12 +70,27 @@ func (p *plugin) parsePluginOutput(output []string) error {
 			return errors.Wrap(err, "parsing json")
 		}
 		for mn, md := range jm {
+			if !metricTypes.MatchString(md.Type) {
+				p.logger.Error().
+					Str("metric", mn).
+					Str("type", md.Type).
+					Msg("invalid metric type in JSON")
+				continue
+			}
 			// add stream tags to metric name
 			tagList := make([]string, 0, len(p.baseTags)+len(md.Tags))
 			tagList = append(tagList, p.baseTags...)
 			tagList = append(tagList, md.Tags...)
 			metrics[tags.MetricNameWithStreamTags(mn, tags.FromList(tagList))] = cgm.Metric{Type: md.Type, Value: md.Value}
 		}
+
+		p.logger.Debug().
+			Str("duration", time.Since(parseStart).String()).
+			Int("lines", len(output)).
+			Int("metrics", len(metrics)).
+			Int("errors", len(output)-(len(metrics)+numDuplicates)).
+			Msg("processed plugin output")
+
 		p.metrics = &metrics
 		return nil
 	}
@@ -85,7 +101,6 @@ func (p *plugin) parsePluginOutput(output []string) error {
 	//  foo\ti\t10  - int32 foo w/value 10
 	//  bar\tL      - uint64 bar w/o value (null, metric is present but has no value)
 	// note: tags is a comma separated list of key:value pairs (e.g. foo:bar,cat:dog)
-	metricTypes := regexp.MustCompile("^[iIlLnOs]$")
 	for _, line := range output {
 		delimCount := strings.Count(line, fieldDelimiter)
 		if delimCount == 0 {
