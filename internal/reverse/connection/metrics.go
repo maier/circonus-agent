@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 
-package reverse
+package connection
 
 import (
 	"crypto/tls"
@@ -28,7 +28,7 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte,
 
 	sentBytes := 0
 	for offset := 0; offset < len(*data); {
-		buff := make([]byte, int(math.Min(float64(len((*data)[offset:])), float64(c.maxPayloadLen))))
+		buff := make([]byte, int(math.Min(float64(len((*data)[offset:])), float64(MaxPayloadLen))))
 		copy(buff, (*data)[offset:])
 		frame := buildFrame(channelID, false, buff)
 		c.logger.Debug().
@@ -39,7 +39,9 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte,
 			Msg("metric payload frame")
 
 		if conn, ok := r.(*tls.Conn); ok {
-			conn.SetDeadline(time.Now().Add(c.commTimeout))
+			if err := conn.SetDeadline(time.Now().Add(CommTimeoutSeconds * time.Second)); err != nil {
+				c.logger.Warn().Err(err).Msg("setting connection deadline")
+			}
 		}
 
 		sent, err := r.Write(frame)
@@ -52,9 +54,9 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte,
 
 	c.logger.Debug().Uint16("channel_id", channelID).Str("duration", time.Since(sendStart).String()).Int("bytes", sentBytes).Msg("metric data sent")
 
-	if c.maxRequests != -1 && channelID > uint16(c.maxRequests) {
+	if MaxRequests != -1 && int(channelID) > MaxRequests {
 		if conn, ok := r.(*tls.Conn); ok {
-			c.logger.Info().Uint16("channel_id", channelID).Int("max", c.maxRequests).Msg("resetting connection")
+			c.logger.Info().Uint16("channel_id", channelID).Int("max", MaxRequests).Msg("resetting connection")
 			conn.Close()
 		}
 	}
@@ -65,7 +67,7 @@ func (c *Connection) sendMetricData(r io.Writer, channelID uint16, data *[]byte,
 // fetchMetricData sends the command arguments to the local agent
 func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte, error) {
 	fetchStart := time.Now()
-	conn, err := net.DialTimeout("tcp", c.agentAddress, c.dialerTimeout)
+	conn, err := net.DialTimeout("tcp", c.agentAddress, DialerTimeoutSeconds*time.Second)
 	if err != nil {
 		return nil, errors.Wrap(err, "connecting to agent for metrics")
 	}
@@ -77,7 +79,9 @@ func (c *Connection) fetchMetricData(request *[]byte, channelID uint16) (*[]byte
 	// with graph/dashboard _play_, metrics will go
 	// back to broker as fast as possible, gated by
 	// plugin execution speed
-	conn.SetDeadline(time.Now().Add(c.metricTimeout))
+	if err := conn.SetDeadline(time.Now().Add(MetricTimeoutSeconds * time.Second)); err != nil {
+		c.logger.Warn().Err(err).Msg("setting connection deadline")
+	}
 
 	numBytes, err := conn.Write(*request)
 	if err != nil {
