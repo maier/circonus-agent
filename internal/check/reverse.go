@@ -7,16 +7,22 @@ package check
 
 import (
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
 
-func (c *Check) setReverseConfig() error {
+func (c *Check) setReverseConfigs() error {
+	c.revConfigs = nil
+
 	if len(c.bundle.ReverseConnectURLs) == 0 {
 		return errors.New("no reverse URLs found in check bundle")
 	}
+
+	var cfgs ReverseConfigs
 
 	for _, rURL := range c.bundle.ReverseConnectURLs {
 		rSecret := c.bundle.Config["reverse:secret_key"]
@@ -28,7 +34,7 @@ func (c *Check) setReverseConfig() error {
 		// Replace protocol, url.Parse does not understand 'mtev_reverse'.
 		// Important part is validating what's after 'proto://'.
 		// Using raw tls connections, the url protocol is not germane.
-		reverseURL, err := url.Parse(strings.Replace(rURL, "mtev_reverse", "http", -1))
+		reverseURL, err := url.Parse(strings.Replace(rURL, "mtev_reverse", "https", -1))
 		if err != nil {
 			return errors.Wrapf(err, "parsing check bundle reverse URL (%s)", rURL)
 		}
@@ -48,13 +54,105 @@ func (c *Check) setReverseConfig() error {
 			return errors.Wrapf(err, "creating TLS config for (%s - %s)", brokerID, rURL)
 		}
 
-		c.revConfigs = append(c.revConfigs, &ReverseConfig{
+		cfgs[cn] = ReverseConfig{
 			CN:         cn,
 			ReverseURL: reverseURL,
 			BrokerID:   brokerID,
 			BrokerAddr: brokerAddr,
 			TLSConfig:  tlsConfig,
-		})
+		}
 	}
+
+	c.revConfigs = &cfgs
 	return nil
+}
+
+// FindPrimaryBrokerInstance will walk through reverse urls to locate the instance
+// in a broker cluster which is the current check owner. Returns the instance cn or error.
+func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	primaryHost := ""
+	primaryCN := ""
+
+	// there is only one reverse url, broker is not clustered
+	if len(*cfgs) == 1 {
+		for name := range *cfgs {
+			return name, nil
+		}
+	}
+
+	// clustered brokers, need to identify which broker is the primary for the check
+	for name, cfg := range *cfgs {
+		client := &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyFromEnvironment,
+				Dial: (&net.Dialer{
+					Timeout: 5 * time.Second,
+				}).Dial,
+				TLSHandshakeTimeout: 3 * time.Second,
+				TLSClientConfig:     cfg.TLSConfig, // all reverse brokers use HTTPS/TLS
+				DisableKeepAlives:   true,
+				MaxIdleConnsPerHost: -1,
+				DisableCompression:  false,
+			},
+		}
+
+		req, err := http.NewRequest("GET", strings.Replace(cfg.ReverseURL.String(), "/check/", "/checks/owner/", 1), nil)
+		if err != nil {
+			c.logger.Warn().Err(err).Str("url", cfg.ReverseURL.String()).Msg("creating check owner request")
+			return "", err
+		}
+		req.Header.Add("Accept", "application/json")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			c.logger.Warn().Err(err).Str("url", cfg.ReverseURL.String()).Msg("executing check owner request")
+			if nerr, ok := err.(net.Error); ok {
+				if nerr.Timeout() {
+					continue
+				}
+			}
+			return "", err
+		}
+		resp.Body.Close() // we only care about headers
+
+		switch resp.StatusCode {
+		case http.StatusNoContent:
+			primaryCN = name
+			break
+		case http.StatusFound:
+			location := resp.Header.Get("Location")
+			if location == "" {
+				c.logger.Warn().Msg("received 302 but 'Location' header missing/blank")
+				continue
+			}
+			// NOTE: this isn't actually a URL, the 'host' portion is actually the CN of
+			//       the broker detail which should be used for the reverse connection.
+			pu, err := url.Parse(location)
+			if err != nil {
+				c.logger.Warn().Err(err).Str("location", location).Msg("unable to parse location")
+				continue
+			}
+			primaryHost = pu.Host
+		default:
+			// try next reverse url host (e.g. if there was an error connecting to this one)
+		}
+	}
+
+	if primaryCN == "" && primaryHost != "" {
+		for name, cfg := range *cfgs {
+			if cfg.ReverseURL.Host == primaryHost {
+				primaryCN = name
+			}
+		}
+	}
+
+	if primaryCN == "" {
+		return "", &NoOwnerFoundError{Err: "unable to locate check owner broker instance", BundleID: c.bundle.CID}
+	}
+
+	c.logger.Debug().Str("cn", primaryCN).Msg("check owner broker instance")
+	return primaryCN, nil
 }
