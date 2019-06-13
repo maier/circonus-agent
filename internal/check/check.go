@@ -41,7 +41,7 @@ type Check struct {
 	metricStateUpdate     bool
 	refreshTTL            time.Duration
 	reverse               bool
-	revConfigs            []*ReverseConfig
+	revConfigs            *ReverseConfigs
 	stateFile             string
 	statePath             string
 	sync.Mutex
@@ -60,6 +60,52 @@ type ReverseConfig struct {
 	BrokerID   string
 	ReverseURL *url.URL
 	TLSConfig  *tls.Config
+}
+
+type ReverseConfigs map[string]ReverseConfig
+
+const (
+	StatusActive = "active"
+)
+
+type BundleNotActiveError struct {
+	Err      string
+	Checks   string
+	BundleID string
+	Status   string
+}
+
+func (e *BundleNotActiveError) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	s := e.Err
+	if e.BundleID != "" {
+		s = s + "Bundle: " + e.BundleID + " "
+	}
+	if e.Checks != "" {
+		s = s + "Check(s): " + e.Checks + " "
+	}
+	if e.Status != "" {
+		s = s + "(" + e.Status + ")"
+	}
+	return s
+}
+
+type NoOwnerFoundError struct {
+	Err      string
+	BundleID string
+}
+
+func (e *NoOwnerFoundError) Error() string {
+	if e == nil {
+		return "<nil>"
+	}
+	s := e.Err
+	if e.BundleID != "" {
+		s = s + "Bundle: " + e.BundleID + " "
+	}
+	return s
 }
 
 // logshim is used to satisfy apiclient Logger interface (avoiding ptr receiver issue)
@@ -81,12 +127,11 @@ func New(apiClient API) (*Check, error) {
 		logger:                log.With().Str("pkg", "check").Logger(),
 		manage:                false,
 		metricStateUpdate:     false,
-		revConfigs:            make([]*ReverseConfig, 0),
 		refreshTTL:            time.Duration(0),
 		reverse:               false,
 		statePath:             viper.GetString(config.KeyCheckMetricStateDir),
-		statusActiveBroker:    "active",
-		statusActiveMetric:    "active",
+		statusActiveBroker:    StatusActive,
+		statusActiveMetric:    StatusActive,
 	}
 
 	isCreate := viper.GetBool(config.KeyCheckCreate)
@@ -135,7 +180,7 @@ func New(apiClient API) (*Check, error) {
 	viper.Set(config.KeyCheckBundleID, c.bundle.CID)
 
 	if isReverse {
-		err := c.setReverseConfig()
+		err := c.setReverseConfigs()
 		if err != nil {
 			return nil, errors.Wrap(err, "setting up reverse configuration")
 		}
@@ -222,12 +267,12 @@ func (c *Check) CheckPeriod() (uint, error) {
 	return 0, errors.New("check not initialized")
 }
 
-// GetReverseConfig returns the reverse configuration to use for the broker
-func (c *Check) GetReverseConfig() ([]*ReverseConfig, error) {
+// GetReverseConfigs returns the reverse connection configuration(s) to use for the check
+func (c *Check) GetReverseConfigs() (*ReverseConfigs, error) {
 	c.Lock()
 	defer c.Unlock()
 
-	if len(c.revConfigs) == 0 {
+	if c.revConfigs == nil {
 		return nil, errors.New("invalid reverse configuration")
 	}
 	return c.revConfigs, nil
@@ -256,7 +301,7 @@ func (c *Check) RefreshCheckConfig() error {
 	}
 	c.bundle.Metrics = []apiclient.CheckBundleMetric{} // save a little memory (or a lot depending on how many metrics are being managed...)
 
-	if err := c.setReverseConfig(); err != nil {
+	if err := c.setReverseConfigs(); err != nil {
 		return errors.Wrap(err, "refresh check, setting reverse config")
 	}
 
