@@ -80,6 +80,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 		}
 
 		if refreshCheck {
+			r.logger.Debug().Msg("refreshing check")
 			if err := r.checkBundle.RefreshCheckConfig(); err != nil {
 				if cberr, ok := errors.Cause(err).(*check.BundleNotActiveError); ok {
 					r.logger.Error().Err(cberr).Msg("exiting reverse")
@@ -99,6 +100,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 			refreshCheck = false
 		}
 
+		r.logger.Debug().Msg("find primary broker instance")
 		primaryCN, err := r.checkBundle.FindPrimaryBrokerInstance(r.configs)
 		if err != nil {
 			if nferr, ok := errors.Cause(err).(*check.NoOwnerFoundError); ok {
@@ -109,6 +111,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 			return err
 		}
 
+		r.logger.Debug().Msg("set broker config")
 		cfg, ok := (*r.configs)[primaryCN]
 		if !ok {
 			r.logger.Warn().Str("primary", primaryCN).Msg("primary broker cn not found, refreshing check")
@@ -116,7 +119,12 @@ func (r *Reverse) Start(ctx context.Context) error {
 			continue
 		}
 
-		r.logger.Debug().Interface("config", cfg).Msg("reverse broker")
+		r.logger.Debug().
+			Str("broker", cfg.BrokerID).
+			Str("cn", cfg.CN).
+			Str("address", cfg.BrokerAddr.String()).
+			Str("url", cfg.ReverseURL.String()).
+			Msg("reverse broker config")
 		rc, err := connection.New(r.logger, r.agentAddress, &cfg)
 		if err != nil {
 			cancel()
@@ -128,6 +136,7 @@ func (r *Reverse) Start(ctx context.Context) error {
 		wg.Add(1)
 
 		go func() {
+			r.logger.Debug().Msg("starting reverse connection")
 			if err := rc.Start(rctx); err != nil {
 				r.logger.Warn().Err(err).Msg("reverse connection")
 				if cerr, ok := err.(*connection.OpError); ok {
@@ -136,12 +145,14 @@ func (r *Reverse) Start(ctx context.Context) error {
 					} else if cerr.RefreshCheck {
 						refreshCheck = true
 					}
-				} // else just let it wrap around and find the owner again
+				}
+				// otherwise, fall through and find the check owner again
 			}
 			wg.Done()
 			return
 		}()
 
+		r.logger.Debug().Msg("waiting for reverse connection to terminate")
 		wg.Wait()
 	}
 }
