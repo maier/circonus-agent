@@ -108,6 +108,9 @@ const (
 )
 
 func New(parentLogger zerolog.Logger, agentAddress string, cfg *check.ReverseConfig) (*Connection, error) {
+	if agentAddress == "" {
+		return nil, errors.Errorf("invalid agent address (empty)")
+	}
 	if cfg == nil {
 		return nil, errors.Errorf("invalid config (nil)")
 	}
@@ -119,6 +122,7 @@ func New(parentLogger zerolog.Logger, agentAddress string, cfg *check.ReverseCon
 	}
 
 	c := Connection{
+		agentAddress: agentAddress,
 		revConfig:    *cfg,
 		State:        StateNew,
 		logger:       parentLogger.With().Str("cn", cfg.CN).Logger(),
