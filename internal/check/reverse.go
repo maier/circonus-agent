@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/circonus-labs/go-apiclient"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +23,20 @@ func (c *Check) setReverseConfigs() error {
 		return errors.New("no reverse URLs found in check bundle")
 	}
 
-	var cfgs ReverseConfigs
+	// set the check broker
+	if len(c.bundle.Brokers) == 0 {
+		return errors.New("no brokers found in check bundle")
+	}
+	brokerID := c.bundle.Brokers[0]
+
+	c.broker = nil
+	broker, err := c.client.FetchBroker(apiclient.CIDType(&brokerID))
+	if err != nil {
+		return errors.Wrapf(err, "unable to retrieve broker (%s)", brokerID)
+	}
+	c.broker = broker
+
+	cfgs := make(ReverseConfigs)
 
 	for _, rURL := range c.bundle.ReverseConnectURLs {
 		rSecret := c.bundle.Config["reverse:secret_key"]
@@ -43,11 +57,6 @@ func (c *Check) setReverseConfigs() error {
 		if err != nil {
 			return errors.Wrapf(err, "invalid reverse service address (%s)", rURL)
 		}
-
-		if len(c.bundle.Brokers) == 0 {
-			return errors.New("no brokers found in check bundle")
-		}
-		brokerID := c.bundle.Brokers[0]
 
 		tlsConfig, cn, err := c.brokerTLSConfig(brokerID, reverseURL)
 		if err != nil {
@@ -78,11 +87,13 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 
 	// there is only one reverse url, broker is not clustered
 	if len(*cfgs) == 1 {
+		c.logger.Debug().Msg("non-clustered broker identified")
 		for name := range *cfgs {
 			return name, nil
 		}
 	}
 
+	c.logger.Debug().Msg("clustered broker identified, determining which owns check")
 	// clustered brokers, need to identify which broker is the primary for the check
 	for name, cfg := range *cfgs {
 		client := &http.Client{
@@ -99,9 +110,12 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 			},
 		}
 
-		req, err := http.NewRequest("GET", strings.Replace(cfg.ReverseURL.String(), "/check/", "/checks/owner/", 1), nil)
+		ownerReqURL := strings.Replace(cfg.ReverseURL.String(), "/check/", "/checks/owner/", 1)
+		c.logger.Debug().Str("trying", ownerReqURL).Msg("checking")
+
+		req, err := http.NewRequest("GET", ownerReqURL, nil)
 		if err != nil {
-			c.logger.Warn().Err(err).Str("url", cfg.ReverseURL.String()).Msg("creating check owner request")
+			c.logger.Warn().Err(err).Str("url", ownerReqURL).Msg("creating check owner request")
 			return "", err
 		}
 		req.Header.Add("Accept", "application/json")
@@ -121,6 +135,7 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 		switch resp.StatusCode {
 		case http.StatusNoContent:
 			primaryCN = name
+			c.logger.Debug().Str("cn", primaryCN).Msg("found owner")
 			break
 		case http.StatusFound:
 			location := resp.Header.Get("Location")
@@ -128,6 +143,7 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 				c.logger.Warn().Msg("received 302 but 'Location' header missing/blank")
 				continue
 			}
+			c.logger.Debug().Str("location", location).Msg("received Location header")
 			// NOTE: this isn't actually a URL, the 'host' portion is actually the CN of
 			//       the broker detail which should be used for the reverse connection.
 			pu, err := url.Parse(location)
@@ -136,6 +152,8 @@ func (c *Check) FindPrimaryBrokerInstance(cfgs *ReverseConfigs) (string, error) 
 				continue
 			}
 			primaryHost = pu.Host
+			c.logger.Debug().Str("cn", primaryCN).Msg("using owner from location header")
+			break
 		default:
 			// try next reverse url host (e.g. if there was an error connecting to this one)
 		}
