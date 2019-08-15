@@ -33,6 +33,7 @@ type Check struct {
 	brokerMaxResponseTime time.Duration
 	brokerMaxRetries      int
 	bundle                *apiclient.CheckBundle
+	broker                *apiclient.Broker
 	client                API
 	lastRefresh           time.Time
 	logger                zerolog.Logger
@@ -124,6 +125,7 @@ func New(apiClient API) (*Check, error) {
 		brokerMaxResponseTime: 500 * time.Millisecond,
 		brokerMaxRetries:      5,
 		bundle:                nil,
+		broker:                nil,
 		logger:                log.With().Str("pkg", "check").Logger(),
 		manage:                false,
 		metricStateUpdate:     false,
