@@ -131,5 +131,14 @@ Vagrant.configure('2') do |config|
             chsh -s /usr/local/bin/bash vagrant
         SHELL
         fb11.vm.provision 'shell', path: 'vprov/fb11.sh', args: [go_url_base, go_ver]
+        fb11.trigger.after(:halt) do |trigger|
+            trigger.info = "Purging NFSD exports"
+            trigger.ruby do |_env, _machine|
+                etc_exports = Pathname.new("/etc/exports")
+                if etc_exports.exist? && etc_exports.size > 0
+                    system(%q{sudo cp /dev/null /etc/exports && sudo nfsd restart})
+                end
+            end
+        end
     end
 end
